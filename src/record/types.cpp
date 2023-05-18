@@ -17,61 +17,204 @@ inline int CompareStrings(const char *str1, int len1, const char *str2, int len2
 
 // ==============================Type=============================
 
-Type *Type::type_singletons_[] = {new Type(TypeId::kTypeInvalid), new TypeInt(), new TypeFloat(), new TypeChar()};
+Type *Type::type_singletons_[] = {new Type(TypeId::kTypeInvalid), new TypeInt(), new TypeFloat(), new TypeChar()};//初始化单例静态初始化
 
 uint32_t Type::SerializeTo(const Field &field, char *buf) const {
-  ASSERT(false, "SerializeTo not implemented.");
-  return 0;
+  switch (field.GetTypeId()) {
+    case kTypeInt:{
+      return type_singletons_[kTypeInt]->SerializeTo(field,buf);
+    }
+    case kTypeFloat:{
+      return type_singletons_[kTypeFloat]->SerializeTo(field,buf);
+    }
+    case kTypeChar:{
+      return type_singletons_[kTypeChar]->SerializeTo(field,buf);
+    }
+    case kTypeInvalid:{
+      throw std::runtime_error("Serialize fail for valid type");
+    }
+  }
+  throw std::runtime_error("Serialize fail in types.cpp");
 }
 
 uint32_t Type::DeserializeFrom(char *storage, Field **field, bool is_null) const {
-  ASSERT(false, "DeserializeFrom not implemented.");
-  return 0;
+  switch (type_id_) {
+    case kTypeInt:{
+      return type_singletons_[kTypeInt]->DeserializeFrom(storage,field,is_null);
+    }
+    case kTypeFloat:{
+      return type_singletons_[kTypeFloat]->DeserializeFrom(storage,field,is_null);
+    }
+    case kTypeChar:{//怎么获得字符串的长度？
+      return type_singletons_[kTypeChar]->DeserializeFrom(storage,field,is_null);
+    }
+    case kTypeInvalid:{
+      throw std::runtime_error("Serialize fail for invalid type");
+    }
+  }
+  throw std::runtime_error("Serialize fail in types.cpp");
 }
 
 uint32_t Type::GetSerializedSize(const Field &field, bool is_null) const {
-  ASSERT(false, "GetSerializedSize not implemented.");
-  return 0;
+  switch (type_id_) {
+    case kTypeInt:{
+      return type_singletons_[kTypeInt]->GetSerializedSize(field,is_null);
+    }
+    case kTypeFloat:{
+      return type_singletons_[kTypeFloat]->GetSerializedSize(field,is_null);
+    }
+    case kTypeChar:{//怎么获得字符串的长度？
+      return type_singletons_[kTypeChar]->GetSerializedSize(field,is_null);
+    }
+    case kTypeInvalid:{
+      throw std::runtime_error("GetSerializedSize fail for invalid type");
+    }
+  }
+  throw std::runtime_error("GetSerializedSize fail in types.cpp");
 }
 
 const char *Type::GetData(const Field &val) const {
-  ASSERT(false, "GetData not implemented.");
-  return nullptr;
+  switch (type_id_) {
+    case kTypeInt:{
+      return type_singletons_[kTypeInt]->GetData(val);
+    }
+    case kTypeFloat:{
+      return type_singletons_[kTypeFloat]->GetData(val);
+    }
+    case kTypeChar:{//怎么获得字符串的长度？
+      return type_singletons_[kTypeChar]->GetData(val);
+    }
+    case kTypeInvalid:{
+      throw std::runtime_error("GetData fail for invalid type");
+    }
+  }
+  throw std::runtime_error("GetData fail in types.cpp");
 }
 
 uint32_t Type::GetLength(const Field &val) const {
-  ASSERT(false, "GetLength not implemented.");
-  return 0;
+  switch (type_id_) {
+    case kTypeInt:{
+      return type_singletons_[kTypeInt]->GetLength(val);
+    }
+    case kTypeFloat:{
+      return type_singletons_[kTypeFloat]->GetLength(val);
+    }
+    case kTypeChar:{//怎么获得字符串的长度？
+      return type_singletons_[kTypeChar]->GetLength(val);
+    }
+    case kTypeInvalid:{
+      throw std::runtime_error("GetLength fail for invalid type");
+    }
+  }
+  throw std::runtime_error("GetLength fail in types.cpp");
 }
 
 CmpBool Type::CompareEquals(const Field &left, const Field &right) const {
-  ASSERT(false, "CompareEquals not implemented.");
-  return kNull;
+  switch (type_id_) {
+    case kTypeInt:{
+      return type_singletons_[kTypeInt]->CompareEquals(left,right);
+    }
+    case kTypeFloat:{
+      return type_singletons_[kTypeFloat]->CompareEquals(left,right);
+    }
+    case kTypeChar:{//怎么获得字符串的长度？
+      return type_singletons_[kTypeChar]->CompareEquals(left,right);
+    }
+    case kTypeInvalid:{
+      throw std::runtime_error("CompareEquals fail for invalid type");
+    }
+  }
+  throw std::runtime_error("CompareEquals fail in types.cpp");
 }
 
 CmpBool Type::CompareNotEquals(const Field &left, const Field &right) const {
-  ASSERT(false, "CompareNotEquals not implemented.");
-  return kNull;
+  switch (type_id_) {
+    case kTypeInt:{
+      return type_singletons_[kTypeInt]->CompareNotEquals(left,right);
+    }
+    case kTypeFloat:{
+      return type_singletons_[kTypeFloat]->CompareNotEquals(left,right);
+    }
+    case kTypeChar:{//怎么获得字符串的长度？
+      return type_singletons_[kTypeChar]->CompareNotEquals(left,right);
+    }
+    case kTypeInvalid:{
+      throw std::runtime_error("CompareNotEquals fail for invalid type");
+    }
+  }
+  throw std::runtime_error("CompareNotEquals fail in types.cpp");
 }
 
 CmpBool Type::CompareLessThan(const Field &left, const Field &right) const {
-  ASSERT(false, "CompareLessThan not implemented.");
-  return kNull;
+  switch (type_id_) {
+    case kTypeInt:{
+      return type_singletons_[kTypeInt]->CompareLessThan(left,right);
+    }
+    case kTypeFloat:{
+      return type_singletons_[kTypeFloat]->CompareLessThan(left,right);
+    }
+    case kTypeChar:{//怎么获得字符串的长度？
+      return type_singletons_[kTypeChar]->CompareLessThan(left,right);
+    }
+    case kTypeInvalid:{
+      throw std::runtime_error("CompareLessThan fail for invalid type");
+    }
+  }
+  throw std::runtime_error("CompareLessThan fail in types.cpp");
 }
 
 CmpBool Type::CompareLessThanEquals(const Field &left, const Field &right) const {
-  ASSERT(false, "CompareLessThanEquals not implemented.");
-  return kNull;
+  switch (type_id_) {
+    case kTypeInt:{
+      return type_singletons_[kTypeInt]->CompareLessThanEquals(left,right);
+    }
+    case kTypeFloat:{
+      return type_singletons_[kTypeFloat]->CompareLessThanEquals(left,right);
+    }
+    case kTypeChar:{//怎么获得字符串的长度？
+      return type_singletons_[kTypeChar]->CompareLessThanEquals(left,right);
+    }
+    case kTypeInvalid:{
+      throw std::runtime_error("CompareLessThanEquals fail for invalid type");
+    }
+  }
+  throw std::runtime_error("CompareLessThanEquals fail in types.cpp");
 }
 
 CmpBool Type::CompareGreaterThan(const Field &left, const Field &right) const {
-  ASSERT(false, "CompareGreaterThan not implemented.");
-  return kNull;
+  switch (type_id_) {
+    case kTypeInt:{
+      return type_singletons_[kTypeInt]->CompareGreaterThan(left,right);
+    }
+    case kTypeFloat:{
+      return type_singletons_[kTypeFloat]->CompareGreaterThan(left,right);
+    }
+    case kTypeChar:{//怎么获得字符串的长度？
+      return type_singletons_[kTypeChar]->CompareGreaterThan(left,right);
+    }
+    case kTypeInvalid:{
+      throw std::runtime_error("CompareGreaterThan fail for invalid type");
+    }
+  }
+  throw std::runtime_error("CompareGreaterThan fail in types.cpp");
 }
 
 CmpBool Type::CompareGreaterThanEquals(const Field &left, const Field &right) const {
-  ASSERT(false, "CompareGreaterThanEquals not implemented.");
-  return kNull;
+  switch (type_id_) {
+    case kTypeInt:{
+      return type_singletons_[kTypeInt]->CompareGreaterThanEquals(left,right);
+    }
+    case kTypeFloat:{
+      return type_singletons_[kTypeFloat]->CompareGreaterThanEquals(left,right);
+    }
+    case kTypeChar:{//怎么获得字符串的长度？
+      return type_singletons_[kTypeChar]->CompareGreaterThanEquals(left,right);
+    }
+    case kTypeInvalid:{
+      throw std::runtime_error("CompareGreaterThanEquals fail for invalid type");
+    }
+  }
+  throw std::runtime_error("CompareGreaterThanEquals fail in types.cpp");
 }
 
 // ==============================TypeInt=================================

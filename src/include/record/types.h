@@ -10,19 +10,19 @@
 
 class Field;
 
-enum CmpBool { kFalse = 0, kTrue, kNull };
+enum CmpBool { kFalse = 0, kTrue, kNull };//枚举量，示比较的结果为假、真和空值。
 
-inline CmpBool GetCmpBool(bool boolean) {
+inline CmpBool GetCmpBool(bool boolean) {//把一个布尔值转化为CmpBool的枚举值
   return boolean ? CmpBool::kTrue : CmpBool::kFalse;
 }
 
-class Type {
+class Type {//基类
  public:
   explicit Type(TypeId type_id) : type_id_(type_id) {}
 
   virtual ~Type() = default;
 
-  static uint32_t GetTypeSize(TypeId type_id) {
+  static uint32_t GetTypeSize(TypeId type_id) {//返回当前类类型
     switch (type_id) {
       case kTypeInt:
         return sizeof(int);
@@ -36,11 +36,11 @@ class Type {
     throw "Unknown field type.";
   }
 
-  inline static Type *GetInstance(TypeId type_id) { return type_singletons_[type_id]; }
+  inline static Type *GetInstance(TypeId type_id) { return type_singletons_[type_id]; }//获得一个单例
 
-  inline TypeId GetTypeId() { return type_id_; }
+  inline TypeId GetTypeId() const { return type_id_; }//获得类型id
 
-  // Serialize this field into the given storage space.
+  // Serialize this field into the given storage space.返回的是字符串的大小
   virtual uint32_t SerializeTo(const Field &field, char *buf) const;
 
   // Deserialize a field of the given type from the given storage space.
@@ -68,8 +68,8 @@ class Type {
   virtual CmpBool CompareGreaterThanEquals(const Field &left, const Field &right) const;
 
  protected:
-  TypeId type_id_{TypeId::kTypeInvalid};
-  static Type *type_singletons_[TypeId::KMaxTypeId + 1];
+  TypeId type_id_{TypeId::kTypeInvalid};//变量类型的枚举量
+  static Type *type_singletons_[TypeId::KMaxTypeId + 1];//静态单例实例，由整个类供相关
 };
 
 class TypeInt : public Type {
