@@ -6,7 +6,7 @@
 #include "common/macros.h"
 #include "record/types.h"
 
-class Column {
+class Column {//每一列的信息，我觉得可以理解为表头
   friend class Schema;
 
  public:
