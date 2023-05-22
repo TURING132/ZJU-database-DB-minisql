@@ -71,7 +71,7 @@ class BPlusTreeInternalPage : public BPlusTreePage {
 
   void CopyFirstFrom(page_id_t value, BufferPoolManager *buffer_pool_manager);
 
-  char data_[PAGE_SIZE - INTERNAL_PAGE_HEADER_SIZE];
+  char data_[PAGE_SIZE];
 };
 
 using InternalPage = BPlusTreeInternalPage;

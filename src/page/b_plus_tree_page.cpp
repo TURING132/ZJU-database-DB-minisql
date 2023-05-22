@@ -7,47 +7,31 @@
 /**
  * TODO: Student Implement
  */
-bool BPlusTreePage::IsLeafPage() const {
-  return false;
-}
+bool BPlusTreePage::IsLeafPage() const { return page_type_ == IndexPageType::LEAF_PAGE; }
 
 /**
  * TODO: Student Implement
  */
-bool BPlusTreePage::IsRootPage() const {
-  return false;
-}
+bool BPlusTreePage::IsRootPage() const { return GetParentPageId() == INVALID_PAGE_ID; }
 
 /**
  * TODO: Student Implement
  */
-void BPlusTreePage::SetPageType(IndexPageType page_type) {
+void BPlusTreePage::SetPageType(IndexPageType page_type) { page_type = page_type_; }
 
-}
+int BPlusTreePage::GetKeySize() const { return key_size_; }
 
-int BPlusTreePage::GetKeySize() const {
-  return key_size_;
-}
-
-void BPlusTreePage::SetKeySize(int size) {
-  key_size_ = size;
-}
+void BPlusTreePage::SetKeySize(int size) { key_size_ = size; }
 
 /*
  * Helper methods to get/set size (number of key/value pairs stored in that
  * page)
  */
-int BPlusTreePage::GetSize() const {
-  return size_;
-}
+int BPlusTreePage::GetSize() const { return size_; }
 
-void BPlusTreePage::SetSize(int size) {
-  size_ = size;
-}
+void BPlusTreePage::SetSize(int size) { size_ = size; }
 
-void BPlusTreePage::IncreaseSize(int amount) {
-  size_ += amount;
-}
+void BPlusTreePage::IncreaseSize(int amount) { size_ += amount; }
 
 /*
  * Helper methods to get/set max size (capacity) of the page
@@ -55,16 +39,12 @@ void BPlusTreePage::IncreaseSize(int amount) {
 /**
  * TODO: Student Implement
  */
-int BPlusTreePage::GetMaxSize() const {
-  return 0;
-}
+int BPlusTreePage::GetMaxSize() const { return max_size_; }
 
 /**
  * TODO: Student Implement
  */
-void BPlusTreePage::SetMaxSize(int size) {
-
-}
+void BPlusTreePage::SetMaxSize(int size) { max_size_ = size; }
 
 /*
  * Helper method to get min page size
@@ -74,7 +54,12 @@ void BPlusTreePage::SetMaxSize(int size) {
  * TODO: Student Implement
  */
 int BPlusTreePage::GetMinSize() const {
-  return 0;
+  if (IsRootPage() && IsLeafPage())
+    return 0;
+  else if (IsRootPage())
+    return 2;
+  else
+    return (max_size_ + 1) / 2;//Leaf和非Root的节点的min_size都是max_size/2取上整
 }
 
 /*
@@ -83,28 +68,18 @@ int BPlusTreePage::GetMinSize() const {
 /**
  * TODO: Student Implement
  */
-page_id_t BPlusTreePage::GetParentPageId() const {
-  return INVALID_PAGE_ID;
-}
+page_id_t BPlusTreePage::GetParentPageId() const { return parent_page_id_; }
 
-void BPlusTreePage::SetParentPageId(page_id_t parent_page_id) {
-  parent_page_id_ = parent_page_id;
-}
+void BPlusTreePage::SetParentPageId(page_id_t parent_page_id) { parent_page_id_ = parent_page_id; }
 
 /*
  * Helper methods to get/set self page id
  */
-page_id_t BPlusTreePage::GetPageId() const {
-  return page_id_;
-}
+page_id_t BPlusTreePage::GetPageId() const { return page_id_; }
 
-void BPlusTreePage::SetPageId(page_id_t page_id) {
-  page_id_ = page_id;
-}
+void BPlusTreePage::SetPageId(page_id_t page_id) { page_id_ = page_id; }
 
 /*
  * Helper methods to set lsn
  */
-void BPlusTreePage::SetLSN(lsn_t lsn) {
-  lsn_ = lsn;
-}
+void BPlusTreePage::SetLSN(lsn_t lsn) { lsn_ = lsn; }

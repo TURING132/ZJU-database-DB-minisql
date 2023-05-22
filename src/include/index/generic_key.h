@@ -8,7 +8,7 @@
 
 class GenericKey {
   friend class KeyManager;
-  char data[0];
+  char data[0];//这个地址就是数据的地址,常用于构成动态缓冲区buffer
 };
 
 class KeyManager {
