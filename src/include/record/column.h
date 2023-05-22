@@ -6,7 +6,7 @@
 #include "common/macros.h"
 #include "record/types.h"
 
-class Column {
+class Column {//每一列的信息，我觉得可以理解为表头
   friend class Schema;
 
  public:
@@ -37,9 +37,9 @@ class Column {
   static uint32_t DeserializeFrom(char *buf, Column *&column);
 
  private:
-  static constexpr uint32_t COLUMN_MAGIC_NUM = 210928;
-  std::string name_;
-  TypeId type_;
+  static constexpr uint32_t COLUMN_MAGIC_NUM = 210928;//这是一个静态常量，或许是用做表示符的？
+  std::string name_;//这个列的名字
+  TypeId type_;//这个列的类型
   uint32_t len_{0};  // for char type this is the maximum byte length of the string data,
   // otherwise is the fixed size
   uint32_t table_ind_{0};  // column position in table

@@ -6,3 +6,5 @@ datas/
 .idea/
 cmake-build-debug/
 cmake-build-release/
+# 忽略.DS_Store文件（针对macOS）
+.DS_Store

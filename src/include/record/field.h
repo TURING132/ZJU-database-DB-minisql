@@ -10,7 +10,7 @@
 #include "record/types.h"
 
 class Field {
-  friend class Type;
+  friend class Type;//这些类都可以访问field的私有变量
 
   friend class TypeInt;
 

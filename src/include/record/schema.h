@@ -10,7 +10,7 @@
 #ifndef MINISQL_SCHEMA_H
 #define MINISQL_SCHEMA_H
 
-class Schema {
+class Schema {//schema是一张表的所有信息，可以理解为一张表的表头
  public:
   explicit Schema(const std::vector<Column *> columns, bool is_manage_ = true)
       : columns_(std::move(columns)), is_manage_(is_manage_) {}
@@ -82,7 +82,7 @@ class Schema {
 
  private:
   static constexpr uint32_t SCHEMA_MAGIC_NUM = 200715;
-  std::vector<Column *> columns_;
+  std::vector<Column *> columns_;//vector指向列的指针
   bool is_manage_ = false; /** if false, don't need to delete pointer to column */
 };
 
