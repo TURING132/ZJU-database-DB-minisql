@@ -8,13 +8,16 @@ bool BitmapPage<PageSize>::AllocatePage(uint32_t &page_offset) {
   if(page_allocated_>=MAX_CHARS*8){
     return false;//full or invalid offset
   }
-  bytes[next_free_page_] = 1;
+  uint32_t n_byte_index = next_free_page_ / 8;
+  uint8_t n_bit_index = next_free_page_ % 8;
+  bytes[n_byte_index] |= (1 << n_bit_index);
   page_offset = next_free_page_;
   for(uint32_t i=0;i<MAX_CHARS*8;i++){
     uint32_t byte_index = i / 8;
     uint8_t bit_index = i % 8;
     if(IsPageFreeLow(byte_index,bit_index)){
       next_free_page_ = i;
+      break ;
     }
   }
   page_allocated_+=1;
@@ -29,10 +32,10 @@ bool BitmapPage<PageSize>::DeAllocatePage(uint32_t page_offset) {
   if(page_offset>=MAX_CHARS*8)return false;
   uint32_t byte_index = page_offset / 8;
   uint8_t bit_index = page_offset % 8;
-  if(!(IsPageFreeLow(byte_index,bit_index))){
+  if((IsPageFreeLow(byte_index,bit_index))){
     return false;//the page has not been allocated
   }
-  bytes[byte_index] |= ~(1 << bit_index);
+  bytes[byte_index] &= ~(1 << bit_index);
   page_allocated_-=1;
   next_free_page_ = page_offset;
   return true;
