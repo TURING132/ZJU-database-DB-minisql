@@ -1,10 +1,47 @@
 #include "storage/table_heap.h"
 
 /**
- * TODO: Student Implement
+ * TODO: USE Transaction and lock
  */
 bool TableHeap::InsertTuple(Row &row, Transaction *txn) {
-  return false;
+  uint32_t tuple_size = row.GetSerializedSize(schema_);
+  if(tuple_size>PAGE_SIZE){
+    return false;
+  }
+  auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(first_page_id_));
+  if(page== nullptr)return false;
+  page->WLatch();
+  bool insertResult = page->InsertTuple(row,schema_,txn,lock_manager_,log_manager_);
+  page->WUnlatch();
+  buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
+  while(!insertResult){//break if success
+    page_id_t next_id = page->GetNextPageId();
+    if(next_id!=INVALID_PAGE_ID){
+      page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(next_id));
+      page->WLatch();
+      insertResult = page->InsertTuple(row,schema_,txn,lock_manager_,log_manager_);
+      page->WUnlatch();
+      buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
+    }else{
+      //attach a page
+      page_id_t new_page_id;
+      buffer_pool_manager_->NewPage(new_page_id);
+      auto new_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(new_page_id));
+      new_page->WLatch();
+      new_page->SetNextPageId(INVALID_PAGE_ID);
+      new_page->SetPrevPageId(page->GetPageId());
+      page->WLatch();
+      page->SetNextPageId(new_page_id);
+      page->WUnlatch();
+      buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
+      insertResult = new_page->InsertTuple(row,schema_,txn,lock_manager_,log_manager_);
+      new_page->WUnlatch();
+      buffer_pool_manager_->UnpinPage(new_page->GetPageId(), true);
+      break ;
+    }
+  }
+  if(insertResult)return true;
+  else return false;
 }
 
 bool TableHeap::MarkDelete(const RowId &rid, Transaction *txn) {
@@ -26,16 +63,31 @@ bool TableHeap::MarkDelete(const RowId &rid, Transaction *txn) {
  * TODO: Student Implement
  */
 bool TableHeap::UpdateTuple(const Row &row, const RowId &rid, Transaction *txn) {
-  return false;
+  auto old_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));
+  old_page->WLatch();
+  Row* old_row = new Row(rid);
+  old_page->GetTuple(old_row,schema_,txn,lock_manager_);
+  bool update_result = old_page->UpdateTuple(row,old_row,schema_,txn,lock_manager_,log_manager_);
+  old_page->WUnlatch();
+  buffer_pool_manager_->UnpinPage(old_page->GetPageId(), true);
+  return update_result;
 }
 
 /**
- * TODO: Student Implement
+ * TODO: USE Transaction and lock
  */
 void TableHeap::ApplyDelete(const RowId &rid, Transaction *txn) {
   // Step1: Find the page which contains the tuple.
   // Step2: Delete the tuple from the page.
-
+  // Find the page which contains the tuple.
+  auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));
+  // If the page could not be found, then abort the transaction.
+  ASSERT(page!= nullptr,"page not found when delete");
+  // Otherwise, apply delete
+  page->WLatch();
+  page->ApplyDelete(rid,txn,log_manager_);
+  page->WUnlatch();
+  buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
 }
 
 void TableHeap::RollbackDelete(const RowId &rid, Transaction *txn) {
@@ -53,7 +105,11 @@ void TableHeap::RollbackDelete(const RowId &rid, Transaction *txn) {
  * TODO: Student Implement
  */
 bool TableHeap::GetTuple(Row *row, Transaction *txn) {
-  return false;
+  auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(row->GetRowId().GetPageId()));
+  page->RLatch();
+  bool get_result = page->GetTuple(row,schema_,txn, lock_manager_);
+  page->RUnlatch();
+  return get_result;
 }
 
 void TableHeap::DeleteTable(page_id_t page_id) {
@@ -72,6 +128,7 @@ void TableHeap::DeleteTable(page_id_t page_id) {
  * TODO: Student Implement
  */
 TableIterator TableHeap::Begin(Transaction *txn) {
+
   return TableIterator();
 }
 
@@ -79,5 +136,6 @@ TableIterator TableHeap::Begin(Transaction *txn) {
  * TODO: Student Implement
  */
 TableIterator TableHeap::End() {
+
   return TableIterator();
 }
