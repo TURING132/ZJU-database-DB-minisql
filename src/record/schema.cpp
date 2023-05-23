@@ -42,5 +42,5 @@ uint32_t Schema::DeserializeFrom(char *buf, Schema *&schema) {
     columns.push_back(col);
   }
   schema = new Schema(columns, true);//默认is_manage都是true，是否manage不应该在这里判断
-  cur;
+  return cur;
 }
