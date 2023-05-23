@@ -1,4 +1,5 @@
 #include "record/types.h"
+#include <stdexcept>
 
 #include "common/macros.h"
 #include "record/field.h"

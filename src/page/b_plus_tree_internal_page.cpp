@@ -87,14 +87,14 @@ page_id_t InternalPage::Lookup(const GenericKey *key, const KeyManager &KM) {
 
   // 从第二个键值对开始二分搜索
   int left = 1;
-  int right = GetSize();
+  int right = GetSize() - 1;
   while (left < right) {
     int mid = (left + right) / 2;
     GenericKey *midKey = KeyAt(mid);
     if (KM.CompareKeys(midKey, key) < 0)
-      right = mid - 1;
-    else
       left = mid + 1;
+    else
+      right = mid - 1;
   }
   return ValueAt(left);
 }
@@ -122,11 +122,13 @@ void InternalPage::PopulateNewRoot(const page_id_t &old_value, GenericKey *new_k
  * @return:  new size after insertion
  */
 int InternalPage::InsertNodeAfter(const page_id_t &old_value, GenericKey *new_key, const page_id_t &new_value) {
-  // 找到 old_value 所在的 index
+  // 找到 old_value 所在的 index，
+  // 这个函数虽然可以插入第一个位置 ，但是因为原本的第一个键值对没有key
+  // 因此函数返回以后必须补全由原来的第一个键值对移位形成的第二个键值对
   int size = GetSize();
   int old_index = ValueIndex(old_value);
 
-  // 依次移动后半部分
+  // 依次移动后面的部分
   for (int i = size; i > old_index + 1; --i) {  // old_index+1 是新键值对需要插入的地方
     SetValueAt(i, ValueAt(i - 1));
     SetKeyAt(i, KeyAt(i - 1));
@@ -184,12 +186,12 @@ void InternalPage::CopyNFrom(void *src, int size, BufferPoolManager *buffer_pool
  * NOTE: store key&value pair continuously after deletion
  */
 void InternalPage::Remove(int index) {
-  //计算index，依次向前移动
+  // 计算index，依次向前移动
   int size = GetSize();
   SetSize(--size);
-  for(int i = index;i<size;i++){
-    SetKeyAt(i,KeyAt(i+1));
-    SetValueAt(i,ValueAt(i+1));
+  for (int i = index; i < size; i++) {
+    SetKeyAt(i, KeyAt(i + 1));
+    SetValueAt(i, ValueAt(i + 1));
   }
 }
 
@@ -198,8 +200,8 @@ void InternalPage::Remove(int index) {
  * NOTE: only call this method within AdjustRoot()(in b_plus_tree.cpp)
  */
 page_id_t InternalPage::RemoveAndReturnOnlyChild() {
-  //判断是否是唯一pair，然后返回值
-  if(GetSize() != 1) return INVALID_PAGE_ID;
+  // 判断是否是唯一pair，然后返回值
+  if (GetSize() != 1) return INVALID_PAGE_ID;
   page_id_t res = ValueAt(0);
   Remove(0);
   return res;
@@ -216,7 +218,7 @@ page_id_t InternalPage::RemoveAndReturnOnlyChild() {
  * pages that are moved to the recipient
  */
 void InternalPage::MoveAllTo(InternalPage *recipient, GenericKey *middle_key, BufferPoolManager *buffer_pool_manager) {
-  //首先拷贝来自parent的键值对，因为最小
+  // 首先拷贝来自parent的键middle_key，值是ValueAt(0)
   recipient->CopyLastFrom(middle_key, ValueAt(0), buffer_pool_manager);
   recipient->CopyNFrom(PairPtrAt(1), GetSize() - 1, buffer_pool_manager);
   buffer_pool_manager->DeletePage(GetPageId());
@@ -234,7 +236,11 @@ void InternalPage::MoveAllTo(InternalPage *recipient, GenericKey *middle_key, Bu
  * pages that are moved to the recipient
  */
 void InternalPage::MoveFirstToEndOf(InternalPage *recipient, GenericKey *middle_key,
-                                    BufferPoolManager *buffer_pool_manager) {}
+                                    BufferPoolManager *buffer_pool_manager) {
+  // 先将当前节点的第一个键值对拷贝到recipient的最后，然后删除第一个键值对
+  recipient->CopyLastFrom(middle_key, ValueAt(0), buffer_pool_manager);
+  Remove(0);
+}
 
 /* Append an entry at the end.
  * Since it is an internal page, the moved entry(page)'s parent needs to be updated.
@@ -262,10 +268,26 @@ void InternalPage::CopyLastFrom(GenericKey *key, const page_id_t value, BufferPo
  * moved to the recipient
  */
 void InternalPage::MoveLastToFrontOf(InternalPage *recipient, GenericKey *middle_key,
-                                     BufferPoolManager *buffer_pool_manager) {}
+                                     BufferPoolManager *buffer_pool_manager) {
+  // 获得最后一个值，插入第一个位置不需要健
+  page_id_t pageId = ValueAt(GetSize() - 1);
+  recipient->CopyFirstFrom(pageId, buffer_pool_manager);
+  // 插入第一个位置以后，补全新节点第二个键值对的key，补全以后返回需要unpin
+  recipient->SetKeyAt(1, middle_key);
+  buffer_pool_manager->UnpinPage(1, true);
+  Remove(GetSize() - 1);
+}
 
 /* Append an entry at the beginning.
  * Since it is an internal page, the moved entry(page)'s parent needs to be updated.
  * So I need to 'adopt' it by changing its parent page id, which needs to be persisted with BufferPoolManger
  */
-void InternalPage::CopyFirstFrom(const page_id_t value, BufferPoolManager *buffer_pool_manager) {}
+void InternalPage::CopyFirstFrom(const page_id_t value, BufferPoolManager *buffer_pool_manager) {
+  // 调用插入函数，但是必须记得补全新节点第二个键值对的key
+  InsertNodeAfter(INVALID_PAGE_ID, KeyAt(0), value);
+
+  // 修改value对应的page的parentId
+  auto *page = reinterpret_cast<InternalPage *>(buffer_pool_manager->FetchPage(value)->GetData());
+  page->SetParentPageId(GetParentPageId());
+  // 返回到上一层再unpin
+}

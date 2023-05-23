@@ -21,14 +21,20 @@
  * next page id and set max size
  * 未初始化next_page_id
  */
-void LeafPage::Init(page_id_t page_id, page_id_t parent_id, int key_size, int max_size) {}
+void LeafPage::Init(page_id_t page_id, page_id_t parent_id, int key_size, int max_size) {
+  SetPageType(IndexPageType::LEAF_PAGE);
+  SetSize(0);
+  SetParentPageId(parent_id);
+  SetPageId(page_id);
+  SetKeySize(key_size);
+  SetMaxSize(max_size);
+  SetNextPageId(INVALID_PAGE_ID);
+}
 
 /**
  * Helper methods to set/get next page id
  */
-page_id_t LeafPage::GetNextPageId() const {
-  return next_page_id_;
-}
+page_id_t LeafPage::GetNextPageId() const { return next_page_id_; }
 
 void LeafPage::SetNextPageId(page_id_t next_page_id) {
   next_page_id_ = next_page_id;
@@ -46,7 +52,17 @@ void LeafPage::SetNextPageId(page_id_t next_page_id) {
  * 二分查找
  */
 int LeafPage::KeyIndex(const GenericKey *key, const KeyManager &KM) {
-  return 0;
+  int left = 0;
+  int right = GetSize();
+  while (left < right) {
+    int mid = (left + right) / 2;
+    GenericKey *midKey = KeyAt(mid);
+    if (KM.CompareKeys(midKey, key) < 0)
+      right = mid - 1;
+    else
+      left = mid + 1;
+  }
+  return left;
 }
 
 /*
@@ -69,9 +85,7 @@ void LeafPage::SetValueAt(int index, RowId value) {
   *reinterpret_cast<RowId *>(pairs_off + index * pair_size + val_off) = value;
 }
 
-void *LeafPage::PairPtrAt(int index) {
-  return KeyAt(index);
-}
+void *LeafPage::PairPtrAt(int index) { return KeyAt(index); }
 
 void LeafPage::PairCopy(void *dest, void *src, int pair_num) {
   memcpy(dest, src, pair_num * (GetKeySize() + sizeof(RowId)));
@@ -82,8 +96,8 @@ void LeafPage::PairCopy(void *dest, void *src, int pair_num) {
  * "index"(a.k.a. array offset)
  */
 std::pair<GenericKey *, RowId> LeafPage::GetItem(int index) {
-    // replace with your own code
-    return make_pair(nullptr, RowId());
+  // replace with your own code
+  return make_pair(KeyAt(index), RowId());
 }
 
 /*****************************************************************************
@@ -94,7 +108,29 @@ std::pair<GenericKey *, RowId> LeafPage::GetItem(int index) {
  * @return page size after insertion
  */
 int LeafPage::Insert(GenericKey *key, const RowId &value, const KeyManager &KM) {
-  return 0;
+  int size = GetSize();
+  // 空节点直接插入
+  if (size == 0) {
+    SetKeyAt(0, key);
+    SetValueAt(0, value);
+    SetSize(++size);
+    return 1;
+  }
+
+  // 获得需要插入的位置
+  int index = KeyIndex(key, KM);
+
+  // 判断是否是相同
+  if (KM.CompareKeys(key, KeyAt(index)) == 0)
+    return size;
+  else {
+    // 不相同将index后的pair整体后移
+    PairCopy(PairPtrAt(index + 1), PairPtrAt(index), size - index);
+    SetKeyAt(index, key);
+    SetValueAt(index, value);
+    SetSize(++size);
+    return size;
+  }
 }
 
 /*****************************************************************************
@@ -104,12 +140,21 @@ int LeafPage::Insert(GenericKey *key, const RowId &value, const KeyManager &KM) 
  * Remove half of key & value pairs from this page to "recipient" page
  */
 void LeafPage::MoveHalfTo(LeafPage *recipient) {
+  // 调用CopyNFrom()拷贝N个到recipient
+  int size = GetSize();
+  int N = size / 2;
+  recipient->CopyNFrom(PairPtrAt(size - N), N);
+  SetSize(GetSize() - N);
 }
 
 /*
  * Copy starting from items, and copy {size} number of elements into me.
  */
 void LeafPage::CopyNFrom(void *src, int size) {
+  // 获得index后拷贝键值对
+  int index = GetSize();
+  PairCopy(PairPtrAt(index), src, size);
+  SetSize(index + size);
 }
 
 /*****************************************************************************
@@ -121,7 +166,16 @@ void LeafPage::CopyNFrom(void *src, int size) {
  * If the key does not exist, then return false
  */
 bool LeafPage::Lookup(const GenericKey *key, RowId &value, const KeyManager &KM) {
-  return false;
+  // 二分搜索的逻辑，如果查找失败会返回size，因为此时left==right， right被初始化为GetSize()
+  int index = KeyIndex(key, KM);
+  if (index >= GetSize()) return false;
+  // 判断
+  if (KM.CompareKeys(key, KeyAt(index)))
+    return false;
+  else {
+    value = ValueAt(index);
+    return true;
+  }
 }
 
 /*****************************************************************************
@@ -134,7 +188,16 @@ bool LeafPage::Lookup(const GenericKey *key, RowId &value, const KeyManager &KM)
  * @return  page size after deletion
  */
 int LeafPage::RemoveAndDeleteRecord(const GenericKey *key, const KeyManager &KM) {
-  return -1;
+  //先查找已知键，若存在删除移动后返回当前大小，不在直接返回当前大小
+  RowId value;
+  int size = GetSize();
+  if (Lookup(key, value, KM)) {
+    int index = KeyIndex(key,KM);
+    PairCopy(PairPtrAt(index), PairPtrAt(index+1),size-index-1);
+    SetSize(--size);
+    return size;
+  } else
+    return size;
 }
 
 /*****************************************************************************
@@ -145,6 +208,11 @@ int LeafPage::RemoveAndDeleteRecord(const GenericKey *key, const KeyManager &KM)
  * to update the next_page id in the sibling page
  */
 void LeafPage::MoveAllTo(LeafPage *recipient) {
+  //先全部移动，后修改nextPageId,最后修改当前size
+  int size = GetSize();
+  recipient->CopyNFrom(PairPtrAt(0),size);
+  recipient->SetNextPageId(GetNextPageId());
+  SetSize(0);
 }
 
 /*****************************************************************************
@@ -155,18 +223,30 @@ void LeafPage::MoveAllTo(LeafPage *recipient) {
  *
  */
 void LeafPage::MoveFirstToEndOf(LeafPage *recipient) {
+  //先拷贝，后整体移动
+  int size = GetSize();
+  recipient->CopyLastFrom(KeyAt(0), ValueAt(0));
+  PairCopy(PairPtrAt(0), PairPtrAt(1), size - 1);
+  SetSize(--size);
 }
 
 /*
  * Copy the item into the end of my item list. (Append item to my array)
  */
 void LeafPage::CopyLastFrom(GenericKey *key, const RowId value) {
+  int size = GetSize();
+  SetValueAt(size, value);
+  SetKeyAt(size, key);
+  SetSize(++size);
 }
 
 /*
  * Remove the last key & value pair from this page to "recipient" page.
  */
 void LeafPage::MoveLastToFrontOf(LeafPage *recipient) {
+  int size = GetSize();
+  recipient->CopyFirstFrom(KeyAt(size-1), ValueAt(size-1));
+  SetSize(--size);
 }
 
 /*
@@ -174,4 +254,9 @@ void LeafPage::MoveLastToFrontOf(LeafPage *recipient) {
  *
  */
 void LeafPage::CopyFirstFrom(GenericKey *key, const RowId value) {
+  int size = GetSize();
+  PairCopy(PairPtrAt(1), PairPtrAt(0),size);
+  SetValueAt(0,value);
+  SetKeyAt(0,key);
+  SetSize(++size);
 }

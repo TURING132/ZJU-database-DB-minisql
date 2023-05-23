@@ -12,6 +12,7 @@ bool BPlusTreePage::IsLeafPage() const { return page_type_ == IndexPageType::LEA
 /**
  * TODO: Student Implement
  */
+ //root只依赖此判断，root在没有孩子的时候是leaf而不是internal
 bool BPlusTreePage::IsRootPage() const { return GetParentPageId() == INVALID_PAGE_ID; }
 
 /**
