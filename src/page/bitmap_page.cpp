@@ -2,12 +2,23 @@
 
 #include "glog/logging.h"
 
-/**
- * TODO: Student Implement
- */
+
 template <size_t PageSize>
 bool BitmapPage<PageSize>::AllocatePage(uint32_t &page_offset) {
-  return false;
+  if(page_allocated_>=MAX_CHARS*8){
+    return false;//full or invalid offset
+  }
+  bytes[next_free_page_] = 1;
+  page_offset = next_free_page_;
+  for(uint32_t i=0;i<MAX_CHARS*8;i++){
+    uint32_t byte_index = i / 8;
+    uint8_t bit_index = i % 8;
+    if(IsPageFreeLow(byte_index,bit_index)){
+      next_free_page_ = i;
+    }
+  }
+  page_allocated_+=1;
+  return true;
 }
 
 /**
@@ -15,7 +26,16 @@ bool BitmapPage<PageSize>::AllocatePage(uint32_t &page_offset) {
  */
 template <size_t PageSize>
 bool BitmapPage<PageSize>::DeAllocatePage(uint32_t page_offset) {
-  return false;
+  if(page_offset>=MAX_CHARS*8)return false;
+  uint32_t byte_index = page_offset / 8;
+  uint8_t bit_index = page_offset % 8;
+  if(!(IsPageFreeLow(byte_index,bit_index))){
+    return false;//the page has not been allocated
+  }
+  bytes[byte_index] |= ~(1 << bit_index);
+  page_allocated_-=1;
+  next_free_page_ = page_offset;
+  return true;
 }
 
 /**
@@ -23,12 +43,19 @@ bool BitmapPage<PageSize>::DeAllocatePage(uint32_t page_offset) {
  */
 template <size_t PageSize>
 bool BitmapPage<PageSize>::IsPageFree(uint32_t page_offset) const {
-  return false;
+  if(page_offset>=MAX_CHARS*8)return false;
+  uint32_t byte_index = page_offset / 8;
+  uint8_t bit_index = page_offset % 8;
+  if(IsPageFreeLow(byte_index,bit_index)){
+    return true;
+  }else{
+    return false;
+  }
 }
 
 template <size_t PageSize>
 bool BitmapPage<PageSize>::IsPageFreeLow(uint32_t byte_index, uint8_t bit_index) const {
-  return false;
+  return !(bytes[byte_index] & (1<<bit_index));
 }
 
 template class BitmapPage<64>;
