@@ -36,7 +36,11 @@ class LRUReplacer : public Replacer {
   size_t Size() override;
 
 private:
-  // add your own private member variables here
+// add your own private member variables here
+  size_t capacity;//可以放置的最大容量
+  list <frame_id_t> lru_list_;//存放能够被移出的frame_id
+  std::unordered_map <frame_id_t,list<frame_id_t>::iterator> lru_hash;//哈希表
+
 };
 
 #endif  // MINISQL_LRU_REPLACER_H
