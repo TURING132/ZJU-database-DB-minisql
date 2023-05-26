@@ -71,6 +71,8 @@ class TableHeap {
    */
   bool GetTuple(Row *row, Transaction *txn);
 
+  RowId GetNextRowId(Row *row, Transaction *txn);
+
   void FreeTableHeap() {
     auto next_page_id = first_page_id_;
     while (next_page_id != INVALID_PAGE_ID) {
@@ -113,7 +115,15 @@ private:
           schema_(schema),
           log_manager_(log_manager),
           lock_manager_(lock_manager) {
-    ASSERT(false, "Not implemented yet.");
+      page_id_t new_page_id;
+      buffer_pool_manager_->NewPage(new_page_id);
+      first_page_id_ = new_page_id;
+      auto new_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(new_page_id));
+      new_page->WLatch();
+      new_page->Init(new_page_id,INVALID_PAGE_ID,log_manager,txn);
+      new_page->SetNextPageId(INVALID_PAGE_ID);
+      new_page->WUnlatch();
+      buffer_pool_manager_->UnpinPage(new_page->GetPageId(), true);
   };
 
   explicit TableHeap(BufferPoolManager *buffer_pool_manager, page_id_t first_page_id, Schema *schema,
