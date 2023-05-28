@@ -28,8 +28,8 @@ bool TableHeap::InsertTuple(Row &row, Transaction *txn) {
       buffer_pool_manager_->NewPage(new_page_id);
       auto new_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(new_page_id));
       new_page->WLatch();
+      new_page->Init(new_page_id,page->GetPageId(),log_manager_,txn);
       new_page->SetNextPageId(INVALID_PAGE_ID);
-      new_page->SetPrevPageId(page->GetPageId());
       page->WLatch();
       page->SetNextPageId(new_page_id);
       page->WUnlatch();
@@ -112,6 +112,44 @@ bool TableHeap::GetTuple(Row *row, Transaction *txn) {
   return get_result;
 }
 
+/*define by liliyang*/
+RowId TableHeap::GetNextRowId(Row *row, Transaction *txn) {
+  RowId r_id = row->GetRowId();
+  auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(r_id.GetPageId()));
+  page->RLatch();
+  RowId* n_id;
+  bool get_result = page->GetNextTupleRid(r_id,n_id);
+  if(get_result){//如果在当前页有下一条记录
+      buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
+      page->RUnlatch();
+      return *n_id;
+  }
+  page->RUnlatch();
+  buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
+  //看下一页
+  auto next_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(page->GetNextPageId()));
+  if(next_page->GetTablePageId()==INVALID_PAGE_ID){
+      return INVALID_ROWID;//最后一条记录了，返回
+  }
+
+  while(true){
+      next_page->RLatch();
+      get_result = next_page->GetFirstTupleRid(&r_id);
+      if(get_result){//一旦获取成功就返回
+        buffer_pool_manager_->UnpinPage(next_page->GetPageId(), false);
+        next_page->RUnlatch();
+        return r_id;
+      }
+      //否则继续寻找下一页
+      buffer_pool_manager_->UnpinPage(next_page->GetPageId(), false);
+      next_page->RUnlatch();
+      next_page =  reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(next_page->GetNextPageId()));
+      if(next_page->GetTablePageId()==INVALID_PAGE_ID){
+        return INVALID_ROWID;//最后一条记录了，返回
+      }
+  }
+}
+
 void TableHeap::DeleteTable(page_id_t page_id) {
   if (page_id != INVALID_PAGE_ID) {
     auto temp_table_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(page_id));  // 删除table_heap
@@ -127,15 +165,17 @@ void TableHeap::DeleteTable(page_id_t page_id) {
 /**
  * TODO: Student Implement
  */
-TableIterator TableHeap::Begin(Transaction *txn) {
 
-  return TableIterator();
+
+TableIterator TableHeap::Begin(Transaction *txn) {
+  auto temp_table_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(first_page_id_));
+  RowId rid;temp_table_page->GetFirstTupleRid(&rid);
+  return TableIterator(this,rid);
 }
 
 /**
  * TODO: Student Implement
  */
 TableIterator TableHeap::End() {
-
-  return TableIterator();
+  return TableIterator(this,INVALID_ROWID);
 }
