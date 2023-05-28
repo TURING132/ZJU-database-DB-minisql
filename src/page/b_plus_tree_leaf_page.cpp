@@ -4,7 +4,7 @@
 
 #include "index/generic_key.h"
 
-#define pairs_off (data_ + LEAF_PAGE_HEADER_SIZE)
+#define pairs_off (data_)
 #define pair_size (GetKeySize() + sizeof(RowId))
 #define key_off 0
 #define val_off GetKeySize()
@@ -57,10 +57,17 @@ int LeafPage::KeyIndex(const GenericKey *key, const KeyManager &KM) {
   while (left < right) {
     int mid = (left + right) / 2;
     GenericKey *midKey = KeyAt(mid);
-    if (KM.CompareKeys(midKey, key) < 0)
-      right = mid - 1;
-    else
-      left = mid + 1;
+    int compare = KM.CompareKeys(key, midKey);
+    switch (compare) {
+      case -1:
+        right = mid;
+        break;
+      case 0:
+        return mid;
+      case 1:
+        left = mid + 1;
+        break;
+    }
   }
   return left;
 }
@@ -97,7 +104,7 @@ void LeafPage::PairCopy(void *dest, void *src, int pair_num) {
  */
 std::pair<GenericKey *, RowId> LeafPage::GetItem(int index) {
   // replace with your own code
-  return make_pair(KeyAt(index), RowId());
+  return make_pair(KeyAt(index), ValueAt(index));
 }
 
 /*****************************************************************************
@@ -113,24 +120,19 @@ int LeafPage::Insert(GenericKey *key, const RowId &value, const KeyManager &KM) 
   if (size == 0) {
     SetKeyAt(0, key);
     SetValueAt(0, value);
-    SetSize(++size);
+    SetSize(1);
     return 1;
   }
 
   // 获得需要插入的位置
   int index = KeyIndex(key, KM);
 
-  // 判断是否是相同
-  if (KM.CompareKeys(key, KeyAt(index)) == 0)
-    return size;
-  else {
-    // 不相同将index后的pair整体后移
-    PairCopy(PairPtrAt(index + 1), PairPtrAt(index), size - index);
-    SetKeyAt(index, key);
-    SetValueAt(index, value);
-    SetSize(++size);
-    return size;
-  }
+  // 将index后的pair整体后移
+  PairCopy(PairPtrAt(index + 1), PairPtrAt(index), size - index);
+  SetKeyAt(index, key);
+  SetValueAt(index, value);
+  SetSize(++size);
+  return size;
 }
 
 /*****************************************************************************
@@ -188,12 +190,12 @@ bool LeafPage::Lookup(const GenericKey *key, RowId &value, const KeyManager &KM)
  * @return  page size after deletion
  */
 int LeafPage::RemoveAndDeleteRecord(const GenericKey *key, const KeyManager &KM) {
-  //先查找已知键，若存在删除移动后返回当前大小，不在直接返回当前大小
+  // 先查找已知键，若存在删除移动后返回当前大小，不在直接返回当前大小
   RowId value;
   int size = GetSize();
   if (Lookup(key, value, KM)) {
-    int index = KeyIndex(key,KM);
-    PairCopy(PairPtrAt(index), PairPtrAt(index+1),size-index-1);
+    int index = KeyIndex(key, KM);
+    PairCopy(PairPtrAt(index), PairPtrAt(index + 1), size - index - 1);
     SetSize(--size);
     return size;
   } else
@@ -208,9 +210,9 @@ int LeafPage::RemoveAndDeleteRecord(const GenericKey *key, const KeyManager &KM)
  * to update the next_page id in the sibling page
  */
 void LeafPage::MoveAllTo(LeafPage *recipient) {
-  //先全部移动，后修改nextPageId,最后修改当前size
+  // 先全部移动，后修改nextPageId,最后修改当前size
   int size = GetSize();
-  recipient->CopyNFrom(PairPtrAt(0),size);
+  recipient->CopyNFrom(PairPtrAt(0), size);
   recipient->SetNextPageId(GetNextPageId());
   SetSize(0);
 }
@@ -223,7 +225,7 @@ void LeafPage::MoveAllTo(LeafPage *recipient) {
  *
  */
 void LeafPage::MoveFirstToEndOf(LeafPage *recipient) {
-  //先拷贝，后整体移动
+  // 先拷贝，后整体移动
   int size = GetSize();
   recipient->CopyLastFrom(KeyAt(0), ValueAt(0));
   PairCopy(PairPtrAt(0), PairPtrAt(1), size - 1);
@@ -244,9 +246,10 @@ void LeafPage::CopyLastFrom(GenericKey *key, const RowId value) {
  * Remove the last key & value pair from this page to "recipient" page.
  */
 void LeafPage::MoveLastToFrontOf(LeafPage *recipient) {
-  int size = GetSize();
-  recipient->CopyFirstFrom(KeyAt(size-1), ValueAt(size-1));
-  SetSize(--size);
+  recipient->PairCopy(recipient->PairPtrAt(1), recipient->PairPtrAt(0), recipient->GetSize());
+  recipient->PairCopy(recipient->PairPtrAt(0), PairPtrAt(GetSize() - 1),  1);
+  SetSize(GetSize() - 1);
+  recipient->SetSize(recipient->GetSize() + 1);
 }
 
 /*
@@ -255,8 +258,8 @@ void LeafPage::MoveLastToFrontOf(LeafPage *recipient) {
  */
 void LeafPage::CopyFirstFrom(GenericKey *key, const RowId value) {
   int size = GetSize();
-  PairCopy(PairPtrAt(1), PairPtrAt(0),size);
-  SetValueAt(0,value);
-  SetKeyAt(0,key);
+  PairCopy(PairPtrAt(1), PairPtrAt(0), size);
+  SetValueAt(0, value);
+  SetKeyAt(0, key);
   SetSize(++size);
 }

@@ -64,6 +64,8 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   void MoveLastToFrontOf(BPlusTreeInternalPage *recipient, GenericKey *middle_key,
                          BufferPoolManager *buffer_pool_manager);
 
+  page_id_t LeftMostKeyFromCurr(BufferPoolManager *buffer_pool_manager);
+
  private:
   void CopyNFrom(void *src, int size, BufferPoolManager *buffer_pool_manager);
 
@@ -71,7 +73,7 @@ class BPlusTreeInternalPage : public BPlusTreePage {
 
   void CopyFirstFrom(page_id_t value, BufferPoolManager *buffer_pool_manager);
 
-  char data_[PAGE_SIZE];
+  char data_[PAGE_SIZE - INTERNAL_PAGE_HEADER_SIZE];
 };
 
 using InternalPage = BPlusTreeInternalPage;

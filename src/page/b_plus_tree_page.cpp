@@ -12,13 +12,13 @@ bool BPlusTreePage::IsLeafPage() const { return page_type_ == IndexPageType::LEA
 /**
  * TODO: Student Implement
  */
- //root只依赖此判断，root在没有孩子的时候是leaf而不是internal
+// root只依赖此判断，root在没有孩子的时候是leaf而不是internal
 bool BPlusTreePage::IsRootPage() const { return GetParentPageId() == INVALID_PAGE_ID; }
 
 /**
  * TODO: Student Implement
  */
-void BPlusTreePage::SetPageType(IndexPageType page_type) { page_type = page_type_; }
+void BPlusTreePage::SetPageType(IndexPageType page_type) { page_type_ = page_type; }
 
 int BPlusTreePage::GetKeySize() const { return key_size_; }
 
@@ -54,14 +54,7 @@ void BPlusTreePage::SetMaxSize(int size) { max_size_ = size; }
 /**
  * TODO: Student Implement
  */
-int BPlusTreePage::GetMinSize() const {
-  if (IsRootPage() && IsLeafPage())
-    return 0;
-  else if (IsRootPage())
-    return 2;
-  else
-    return (max_size_ + 1) / 2;//Leaf和非Root的节点的min_size都是max_size/2取上整
-}
+int BPlusTreePage::GetMinSize() const { return max_size_ / 2; }
 
 /*
  * Helper methods to get/set parent page id

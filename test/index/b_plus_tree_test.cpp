@@ -1,5 +1,4 @@
 #include "index/b_plus_tree.h"
-
 #include "common/instance.h"
 #include "gtest/gtest.h"
 #include "index/comparator.h"
@@ -19,7 +18,7 @@ TEST(BPlusTreeTests, SampleTest) {
   BPlusTree tree(0, engine.bpm_, KP);
   TreeFileManagers mgr("tree_");
   // Prepare data
-  const int n = 30;
+  const int n = 1000;
   vector<GenericKey *> keys;
   vector<RowId> values;
   vector<GenericKey *> delete_seq;
@@ -47,7 +46,7 @@ TEST(BPlusTreeTests, SampleTest) {
   }
   ASSERT_TRUE(tree.Check());
   // Print tree
-  tree.PrintTree(mgr[0]);
+  tree.PrintTree(mgr[0]);//
   // Search keys
   vector<RowId> ans;
   for (int i = 0; i < n; i++) {
@@ -62,6 +61,7 @@ TEST(BPlusTreeTests, SampleTest) {
   tree.PrintTree(mgr[1]);
   // Check valid
   ans.clear();
+  int abc = 0;
   for (int i = 0; i < n / 2; i++) {
     ASSERT_FALSE(tree.GetValue(delete_seq[i], ans));
   }

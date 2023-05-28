@@ -83,7 +83,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
 
   page_id_t next_page_id_{INVALID_PAGE_ID};
 
-  char data_[PAGE_SIZE];
+  char data_[PAGE_SIZE - LEAF_PAGE_HEADER_SIZE];
 };
 
 using LeafPage = BPlusTreeLeafPage;

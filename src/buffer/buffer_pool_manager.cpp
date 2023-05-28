@@ -28,7 +28,9 @@ BufferPoolManager::~BufferPoolManager() {
 // 4.     Update P's metadata, read in the page content from disk, and then return a pointer to P.
 Page *BufferPoolManager::FetchPage(page_id_t page_id) {
   frame_id_t tmp;
-  
+  //梁嘉琦加的
+  if(page_id > MAX_VALID_PAGE_ID || page_id <= INVALID_PAGE_ID) return nullptr;
+
   //If P exists, pin it and return it immediately.
   if(page_table_.count(page_id)>0){
     tmp = page_table_[page_id];

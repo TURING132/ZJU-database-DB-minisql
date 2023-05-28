@@ -11,7 +11,7 @@
 // define page type enum
 enum class IndexPageType { INVALID_INDEX_PAGE = 0, LEAF_PAGE, INTERNAL_PAGE };
 
-#define UNDEFINED_SIZE 0
+#define UNDEFINED_SIZE 4
 /**
  * Both internal and leaf page are inherited from this page.
  *

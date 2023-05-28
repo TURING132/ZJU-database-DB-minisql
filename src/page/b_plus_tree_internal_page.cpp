@@ -2,7 +2,7 @@
 
 #include "index/generic_key.h"
 
-#define pairs_off (data_ + INTERNAL_PAGE_HEADER_SIZE)
+#define pairs_off (data_)
 #define pair_size (GetKeySize() + sizeof(page_id_t))
 #define key_off 0
 #define val_off GetKeySize()
@@ -77,28 +77,24 @@ void InternalPage::PairCopy(void *dest, void *src, int pair_num) {
  * 用了二分查找
  */
 page_id_t InternalPage::Lookup(const GenericKey *key, const KeyManager &KM) {
-  // Root 就是 Leaf 的部分情况
   if (GetSize() == 0) return INVALID_PAGE_ID;
   if (GetSize() == 1) return ValueAt(0);
-
-  // 判断第一个键值对
-  GenericKey *secKey = KeyAt(1);
-  if (KM.CompareKeys(key, secKey) < 0) return ValueAt(0);
-
-  // 从第二个键值对开始二分搜索
-  int left = 1;
-  int right = GetSize() - 1;
-  while (left < right) {
-    int mid = (left + right) / 2;
+  if (KM.CompareKeys(key, KeyAt(1)) < 0) return ValueAt(0);
+  int end = GetSize();
+  int begin = 1;
+  while (end > begin + 1) {
+    int mid = (end + begin) / 2;
     GenericKey *midKey = KeyAt(mid);
-    if (KM.CompareKeys(midKey, key) < 0)
-      left = mid + 1;
-    else
-      right = mid - 1;
+    int com = KM.CompareKeys(key, midKey);
+    if (com > 0) {
+      begin = mid;
+    } else if (com < 0) {
+      end = mid;
+    } else
+      return ValueAt(mid);
   }
-  return ValueAt(left);
+  return ValueAt(begin);
 }
-
 /*****************************************************************************
  * INSERTION
  *****************************************************************************/
@@ -129,14 +125,14 @@ int InternalPage::InsertNodeAfter(const page_id_t &old_value, GenericKey *new_ke
   int old_index = ValueIndex(old_value);
 
   // 依次移动后面的部分
-  for (int i = size; i > old_index + 1; --i) {  // old_index+1 是新键值对需要插入的地方
-    SetValueAt(i, ValueAt(i - 1));
-    SetKeyAt(i, KeyAt(i - 1));
+  for (int i = size - 1; i > old_index; i--) {  // old_index+1 是新键值对需要插入的地方
+    SetValueAt(i + 1, ValueAt(i));
+    SetKeyAt(i + 1, KeyAt(i));
   }
 
   // 新值插入并修改size
   SetKeyAt(old_index + 1, new_key);
-  SetValueAt(old_index, new_value);
+  SetValueAt(old_index + 1, new_value);
   SetSize(size + 1);
   return size + 1;
 }
@@ -163,18 +159,19 @@ void InternalPage::MoveHalfTo(InternalPage *recipient, BufferPoolManager *buffer
  *
  */
 void InternalPage::CopyNFrom(void *src, int size, BufferPoolManager *buffer_pool_manager) {
-  // 用两个指针传递数据给CopyLastFrom()
-  GenericKey *key;
-  page_id_t *pageId;
+  auto key = new GenericKey;
+  auto pageId = new page_id_t;
   char *source = reinterpret_cast<char *>(src);
-  SetSize(GetSize() + size);
+
   for (int i = 0; i < size; i++) {
     memcpy(key, source, GetKeySize());
     source += GetKeySize();
-    memcpy(pageId, source, 4);
+    memcpy(pageId, source, sizeof(page_id_t));
     source += sizeof(page_id_t);
     CopyLastFrom(key, *pageId, buffer_pool_manager);
   }
+  delete key;
+  delete pageId;
 }
 
 /*****************************************************************************
@@ -188,11 +185,11 @@ void InternalPage::CopyNFrom(void *src, int size, BufferPoolManager *buffer_pool
 void InternalPage::Remove(int index) {
   // 计算index，依次向前移动
   int size = GetSize();
-  SetSize(--size);
-  for (int i = index; i < size; i++) {
-    SetKeyAt(i, KeyAt(i + 1));
-    SetValueAt(i, ValueAt(i + 1));
+  for (int i = index + 1; i < size; i++) {
+    SetKeyAt(i - 1, KeyAt(i));
+    SetValueAt(i - 1, ValueAt(i));
   }
+  SetSize(size - 1);
 }
 
 /*
@@ -274,7 +271,6 @@ void InternalPage::MoveLastToFrontOf(InternalPage *recipient, GenericKey *middle
   recipient->CopyFirstFrom(pageId, buffer_pool_manager);
   // 插入第一个位置以后，补全新节点第二个键值对的key，补全以后返回需要unpin
   recipient->SetKeyAt(1, middle_key);
-  buffer_pool_manager->UnpinPage(1, true);
   Remove(GetSize() - 1);
 }
 
@@ -288,6 +284,21 @@ void InternalPage::CopyFirstFrom(const page_id_t value, BufferPoolManager *buffe
 
   // 修改value对应的page的parentId
   auto *page = reinterpret_cast<InternalPage *>(buffer_pool_manager->FetchPage(value)->GetData());
-  page->SetParentPageId(GetParentPageId());
+  page->SetParentPageId(GetPageId());
+  buffer_pool_manager->UnpinPage(value, true);
   // 返回到上一层再unpin
+}
+//返回当前节点儿子中最小键所在的叶节点id
+page_id_t InternalPage::LeftMostKeyFromCurr(BufferPoolManager *buffer_pool_manager) {
+  Page *currPage = buffer_pool_manager->FetchPage(this->GetPageId());
+  auto *curr = reinterpret_cast<BPlusTreePage *>(currPage->GetData());
+  InternalPage *internalPage;
+  while (!curr->IsLeafPage()) {//由于curr是由this转换过来的，所以至少可以进入一次
+    buffer_pool_manager->UnpinPage(curr->GetPageId(), false);           // 每找一层关闭上一层的内节点page
+    internalPage = reinterpret_cast<::InternalPage *>(currPage);  // 打开上一层内节点page
+    currPage = buffer_pool_manager->FetchPage(internalPage->ValueAt(0));  // 改变当前页的指针
+    curr = reinterpret_cast<BPlusTreePage *>(currPage->GetData());
+  }
+  buffer_pool_manager->UnpinPage(curr->GetPageId(),false);
+  return internalPage->ValueAt(0);
 }
