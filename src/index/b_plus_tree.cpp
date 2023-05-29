@@ -16,10 +16,10 @@ BPlusTree::BPlusTree(index_id_t index_id, BufferPoolManager *buffer_pool_manager
       processor_(KM),
       leaf_max_size_(leaf_max_size),
       internal_max_size_(internal_max_size) {
-  //  if(leaf_max_size == UNDEFINED_SIZE)
-  //    leaf_max_size_ = (PAGE_SIZE - LEAF_PAGE_HEADER_SIZE) / (processor_.GetKeySize() + sizeof(RowId));
-  //  if(internal_max_size == UNDEFINED_SIZE)
-  //    internal_max_size_ = (PAGE_SIZE - INTERNAL_PAGE_HEADER_SIZE) / (processor_.GetKeySize() + sizeof(page_id_t));
+    if(leaf_max_size == UNDEFINED_SIZE)
+      leaf_max_size_ = (PAGE_SIZE - LEAF_PAGE_HEADER_SIZE) / (processor_.GetKeySize() + sizeof(RowId));
+    if(internal_max_size == UNDEFINED_SIZE)
+      internal_max_size_ = (PAGE_SIZE - INTERNAL_PAGE_HEADER_SIZE) / (processor_.GetKeySize() + sizeof(page_id_t));
 }
 
 void BPlusTree::Destroy(page_id_t current_page_id) {
