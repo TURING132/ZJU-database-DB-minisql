@@ -4,6 +4,7 @@
 #include "glog/logging.h"
 #include "index/basic_comparator.h"
 #include "index/generic_key.h"
+#include "page/header_page.h"
 #include "page/index_roots_page.h"
 
 /**
@@ -85,6 +86,7 @@ void BPlusTree::StartNewTree(GenericKey *key, const RowId &value) {
 
   // 在新根上操作
   root_page_id_ = pageId;
+  UpdateRootPageId(1);
   auto *rootPage = reinterpret_cast<::LeafPage *>(page->GetData());
   rootPage->Init(pageId, INVALID_PAGE_ID, processor_.GetKeySize(), leaf_max_size_);
   rootPage->Insert(key, value, processor_);
@@ -180,6 +182,7 @@ void BPlusTree::InsertIntoParent(BPlusTreePage *old_node, GenericKey *key, BPlus
     old_node->SetParentPageId(rootId);
     new_node->SetParentPageId(rootId);
     root_page_id_ = rootId;
+    UpdateRootPageId(0);
     buffer_pool_manager_->UnpinPage(rootId, true);
     return;
   } else {  // 被分裂的节点不是根节点，向上迭代
@@ -424,6 +427,7 @@ bool BPlusTree::AdjustRoot(BPlusTreePage *old_root_node) {
   if (old_root_node->IsLeafPage()) {
     if (old_root_node->GetSize() == 1) return false;  // root同时是leaf，节点不为0即不用删除
     root_page_id_ = INVALID_PAGE_ID;
+    UpdateRootPageId(0);
     return true;
   }
 
@@ -433,6 +437,7 @@ bool BPlusTree::AdjustRoot(BPlusTreePage *old_root_node) {
       reinterpret_cast<BPlusTree::InternalPage *>(buffer_pool_manager_->FetchPage(root_page_id_)->GetData());
   new_root_node->SetParentPageId(INVALID_PAGE_ID);
   buffer_pool_manager_->UnpinPage(root_page_id_, true);
+  UpdateRootPageId(0);
   return true;
 }
 
@@ -519,14 +524,24 @@ Page *BPlusTree::FindLeafPage(const GenericKey *key, page_id_t page_id, bool lef
 }
 
 /*
- * Update/Insert root page id in header page(where page_id = 0, header_page is
- * defined under include/page/header_page.h)
+ * Update/Insert root page id in IndexRootsPage(where page_id = 0, index_roots__page is
+ * defined under include/page/index_roots__page.h)
  * Call this method everytime root page id is changed.
  * @parameter: insert_record      default value is false. When set to true,
  * insert a record <index_name, current_page_id> into header page instead of
  * updating it.
  */
-void BPlusTree::UpdateRootPageId(int insert_record) {}
+void BPlusTree::UpdateRootPageId(int insert_record) {
+  auto *index_roots_page = reinterpret_cast<IndexRootsPage *>(buffer_pool_manager_->FetchPage(0));
+  if (insert_record != 0) {
+    // create a new record<index_id_ + root_page_id> in index_roots_page
+    index_roots_page->Insert(index_id_, root_page_id_);
+  } else {
+    // update root_page_id in index_roots_page
+    index_roots_page->Update(index_id_, root_page_id_);
+  }
+  buffer_pool_manager_->UnpinPage(0, true);
+}
 
 /**
  * This method is used for debug only, You don't need to modify
