@@ -2,9 +2,7 @@
 #include <string>
 
 #include "glog/logging.h"
-#include "index/basic_comparator.h"
 #include "index/generic_key.h"
-#include "page/header_page.h"
 #include "page/index_roots_page.h"
 
 /**
