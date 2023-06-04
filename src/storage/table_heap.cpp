@@ -117,18 +117,18 @@ RowId TableHeap::GetNextRowId(Row *row, Transaction *txn) {
   RowId r_id = row->GetRowId();
   auto page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(r_id.GetPageId()));
   page->RLatch();
-  RowId* n_id;
-  bool get_result = page->GetNextTupleRid(r_id,n_id);
+  RowId n_id;
+  bool get_result = page->GetNextTupleRid(r_id,&n_id);
   if(get_result){//如果在当前页有下一条记录
-      buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
-      page->RUnlatch();
-      return *n_id;
+    page->RUnlatch();
+    buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
+    return n_id;
   }
   page->RUnlatch();
   buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
   //看下一页
   auto next_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(page->GetNextPageId()));
-  if(next_page->GetTablePageId()==INVALID_PAGE_ID){
+  if(next_page==NULL){
       return INVALID_ROWID;//最后一条记录了，返回
   }
 
@@ -144,7 +144,7 @@ RowId TableHeap::GetNextRowId(Row *row, Transaction *txn) {
       buffer_pool_manager_->UnpinPage(next_page->GetPageId(), false);
       next_page->RUnlatch();
       next_page =  reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(next_page->GetNextPageId()));
-      if(next_page->GetTablePageId()==INVALID_PAGE_ID){
+      if(next_page==NULL){
         return INVALID_ROWID;//最后一条记录了，返回
       }
   }

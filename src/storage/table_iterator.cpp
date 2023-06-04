@@ -4,10 +4,6 @@
 #include "storage/table_heap.h"
 
 /**
- * Don't use iterator! not done!
- *
- */
-/**
  * TODO: Student Implement
  */
 TableIterator::TableIterator(TableHeap* tableHeap,RowId currentRowID) {
@@ -56,20 +52,20 @@ TableIterator &TableIterator::operator=(const TableIterator &itr) noexcept {
 
 // ++iter
 TableIterator &TableIterator::operator++() {
-//  ASSERT(tableHeap_, "TableHeap is nullptr.");
-//  Row cur_row;
-//  cur_row.SetRowId(currentRowID_);
-//  tableHeap_->GetTuple(&cur_row, nullptr);
-//  currentRowID_ = tableHeap_->GetNextRowId(&cur_row, nullptr);
+  ASSERT(tableHeap_, "TableHeap is nullptr.");
+  Row cur_row;
+  cur_row.SetRowId(currentRowID_);
+  tableHeap_->GetTuple(&cur_row, nullptr);
+  currentRowID_ = tableHeap_->GetNextRowId(&cur_row, nullptr);
   return *this;
 }
 
 // iter++
 TableIterator &TableIterator::operator++(int) {
-//  ASSERT(tableHeap_, "TableHeap is nullptr.");
-//  Row cur_row;
-//  cur_row.SetRowId(currentRowID_);
-//  tableHeap_->GetTuple(&cur_row, nullptr);
-//  currentRowID_ = tableHeap_->GetNextRowId(&cur_row, nullptr);
+  ASSERT(tableHeap_, "TableHeap is nullptr.");
+  Row cur_row;
+  cur_row.SetRowId(currentRowID_);
+  tableHeap_->GetTuple(&cur_row, nullptr);
+  currentRowID_ = tableHeap_->GetNextRowId(&cur_row, nullptr);
   return *this;
 }
