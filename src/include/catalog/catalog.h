@@ -1,10 +1,10 @@
 #ifndef MINISQL_CATALOG_H
 #define MINISQL_CATALOG_H
 
-#include <map>
 #include <string>
+#include <map>
 #include <unordered_map>
-
+#include "record/field.h"
 #include "buffer/buffer_pool_manager.h"
 #include "catalog/indexes.h"
 #include "catalog/table.h"
@@ -20,7 +20,7 @@ class CatalogMeta {
  public:
   void SerializeTo(char *buf) const;
 
-  static CatalogMeta *DeserializeFrom(char *buf);
+  static CatalogMeta *DeserializeFrom(char *buf, MemHeap *heap);
 
   uint32_t GetSerializedSize() const;
 
@@ -32,32 +32,27 @@ class CatalogMeta {
     return index_meta_pages_.size() == 0 ? 0 : index_meta_pages_.rbegin()->first;
   }
 
-  static CatalogMeta *NewInstance() { return new CatalogMeta(); }
+  static CatalogMeta *NewInstance(MemHeap *heap) {
+    void *buf = heap->Allocate(sizeof(CatalogMeta));
+    return new(buf) CatalogMeta();
+  }
 
   /**
    * Used only for testing
    */
-  inline std::map<table_id_t, page_id_t> *GetTableMetaPages() { return &table_meta_pages_; }
+  inline std::map<table_id_t, page_id_t> *GetTableMetaPages() {
+    return &table_meta_pages_;
+  }
 
   /**
    * Used only for testing
    */
-  inline std::map<index_id_t, page_id_t> *GetIndexMetaPages() { return &index_meta_pages_; }
-
-  /**
-   * Delete index meta data and its meta page.
-   */
-  bool DeleteIndexMetaPage(BufferPoolManager *bpm, index_id_t index_id) {
-    if (index_meta_pages_.find(index_id) == index_meta_pages_.end()) {
-      return false;
-    }
-    bpm->DeletePage(index_meta_pages_[index_id]);
-    index_meta_pages_.erase(index_id);
-    return true;
+  inline std::map<index_id_t, page_id_t> *GetIndexMetaPages() {
+    return &index_meta_pages_;
   }
 
  private:
-  CatalogMeta();
+  explicit CatalogMeta();
 
  private:
   static constexpr uint32_t CATALOG_METADATA_MAGIC_NUM = 89849;
@@ -71,8 +66,8 @@ class CatalogMeta {
  */
 class CatalogManager {
  public:
-  explicit CatalogManager(BufferPoolManager *buffer_pool_manager, LockManager *lock_manager, LogManager *log_manager,
-                          bool init);
+  explicit CatalogManager(BufferPoolManager *buffer_pool_manager, LockManager *lock_manager,
+                          LogManager *log_manager, bool init);
 
   ~CatalogManager();
 
@@ -83,8 +78,8 @@ class CatalogManager {
   dberr_t GetTables(std::vector<TableInfo *> &tables) const;
 
   dberr_t CreateIndex(const std::string &table_name, const std::string &index_name,
-                      const std::vector<std::string> &index_keys, Transaction *txn, IndexInfo *&index_info,
-                      const string &index_type);
+                      const std::vector<std::string> &index_keys, Transaction *txn,
+                      IndexInfo *&index_info);
 
   dberr_t GetIndex(const std::string &table_name, const std::string &index_name, IndexInfo *&index_info) const;
 
@@ -95,8 +90,6 @@ class CatalogManager {
   dberr_t DropIndex(const std::string &table_name, const std::string &index_name);
 
  private:
-  dberr_t DropTable(table_id_t table_id);
-
   dberr_t FlushCatalogMetaPage() const;
 
   dberr_t LoadTable(const table_id_t table_id, const page_id_t page_id);
@@ -109,15 +102,17 @@ class CatalogManager {
   [[maybe_unused]] BufferPoolManager *buffer_pool_manager_;
   [[maybe_unused]] LockManager *lock_manager_;
   [[maybe_unused]] LogManager *log_manager_;
-  CatalogMeta *catalog_meta_;
-  std::atomic<table_id_t> next_table_id_;
-  std::atomic<index_id_t> next_index_id_;
+  [[maybe_unused]] CatalogMeta *catalog_meta_;
+  [[maybe_unused]] std::atomic<table_id_t> next_table_id_;
+  [[maybe_unused]] std::atomic<index_id_t> next_index_id_;
   // map for tables
   std::unordered_map<std::string, table_id_t> table_names_;
   std::unordered_map<table_id_t, TableInfo *> tables_;
   // map for indexes: table_name->index_name->indexes
-  std::unordered_map<std::string, std::unordered_map<std::string, index_id_t>> index_names_;
-  std::unordered_map<index_id_t, IndexInfo *> indexes_;
+  [[maybe_unused]] std::unordered_map<std::string, std::unordered_map<std::string, index_id_t>> index_names_;
+  [[maybe_unused]] std::unordered_map<index_id_t, IndexInfo *> indexes_;
+  // memory heap
+  MemHeap *heap_;
 };
 
-#endif  // MINISQL_CATALOG_H
+#endif //MINISQL_CATALOG_H
