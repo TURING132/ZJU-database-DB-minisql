@@ -2,10 +2,12 @@
 #include <iostream>
 #include <vector>
 
+//#include "page/table_page.h"
 #include "common/dberr.h"
 #include "common/macros.h"
 #include "glog/logging.h"
 #include "record/column.h"
+
 
 #ifndef MINISQL_SCHEMA_H
 #define MINISQL_SCHEMA_H
@@ -79,7 +81,8 @@ class Schema {//schema是一张表的所有信息，可以理解为一张表的�
    * Only used in table
    */
   static uint32_t DeserializeFrom(char *buf, Schema *&schema);
-
+  //添加了重载函数
+  //static uint32_t DeserializeFrom(char *buf, Schema *&schema, MemHeap *heap);
  private:
   static constexpr uint32_t SCHEMA_MAGIC_NUM = 200715;
   std::vector<Column *> columns_;//vector指向列的指针

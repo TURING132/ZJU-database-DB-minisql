@@ -7,6 +7,8 @@
 
 class BPlusTreeIndex : public Index {
  public:
+  //重载函数
+  BPlusTreeIndex(index_id_t index_id, IndexSchema *key_schema, BufferPoolManager *buffer_pool_manager);
   BPlusTreeIndex(index_id_t index_id, IndexSchema *key_schema, size_t key_size, BufferPoolManager *buffer_pool_manager);
 
   dberr_t InsertEntry(const Row &key, RowId row_id, Transaction *txn) override;

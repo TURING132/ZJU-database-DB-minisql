@@ -22,6 +22,18 @@ class TableHeap {
     return new TableHeap(buffer_pool_manager, first_page_id, schema, log_manager, lock_manager);
   }
 
+  static TableHeap *Create(BufferPoolManager *buffer_pool_manager, Schema *schema, Transaction *txn,
+                           LogManager *log_manager, LockManager *lock_manager, MemHeap *heap) {
+    void *buf = heap->Allocate(sizeof(TableHeap));
+    return new (buf) TableHeap(buffer_pool_manager, schema, txn, log_manager, lock_manager);
+  }
+
+  static TableHeap *Create(BufferPoolManager *buffer_pool_manager, page_id_t first_page_id, Schema *schema,
+                           LogManager *log_manager, LockManager *lock_manager, MemHeap *heap) {
+    void *buf = heap->Allocate(sizeof(TableHeap));
+    return new (buf) TableHeap(buffer_pool_manager, first_page_id, schema, log_manager, lock_manager);
+  }
+
   ~TableHeap() {}
 
   /**

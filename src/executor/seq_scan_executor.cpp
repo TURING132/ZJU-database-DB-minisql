@@ -11,7 +11,6 @@ SeqScanExecutor::SeqScanExecutor(ExecuteContext *exec_ctx, const SeqScanPlanNode
       plan_(plan){}
 
 void SeqScanExecutor::Init() {
-  plan_->
 }
 
 bool SeqScanExecutor::Next(Row *row, RowId *rid) {
