@@ -28,38 +28,33 @@ uint32_t TableMetadata::GetSerializedSize() const {
          +MACH_STR_SERIALIZED_SIZE(table_name_)+sizeof(root_page_id_);
 }
 
-/**
- * @param heap Memory heap passed by TableInfo
- */
-uint32_t TableMetadata::DeserializeFrom(char *buf, TableMetadata *&table_meta, MemHeap *heap) {
-  /*content: MAGIC_NUM | table_id_ | table_name_.length() | table_name_ | root_table_id_ |schema*/
-  table_id_t table_id;
-  std::string table_name;
-  page_id_t root_page_id;
-  TableSchema *schema;
-  uint32_t offset=0;
-  //table id
-  offset=sizeof(uint32_t);
-  table_id=MACH_READ_FROM(uint32_t,buf+offset);
-  offset+=sizeof(uint32_t);
-  //table name length
-  uint32_t len=MACH_READ_FROM(uint32_t,buf+offset);
-  offset+=sizeof(uint32_t);
-  //table name
-  char tmp[5000];
-  memcpy(tmp,buf+offset,len);
-  tmp[len]='\0';
-  table_name=tmp;
-  offset+=len;
-  //root table id
-  root_page_id=MACH_READ_FROM(uint32_t,buf+offset);
-  offset+=sizeof(uint32_t);
 
-  offset+=schema->DeserializeFrom(buf+offset,schema);
-  //build table_meta
-  void *mem = heap->Allocate(sizeof(TableMetadata));
-  table_meta = new(mem)TableMetadata(table_id, table_name, root_page_id, schema);
-  return offset;
+uint32_t TableMetadata::DeserializeFrom(char *buf, TableMetadata *&table_meta) {
+  if (table_meta != nullptr) {
+    LOG(WARNING) << "Pointer object table info is not null in table info deserialize." << std::endl;
+  }
+  char *p = buf;
+  // magic num
+  uint32_t magic_num = MACH_READ_UINT32(buf);
+  buf += 4;
+  ASSERT(magic_num == TABLE_METADATA_MAGIC_NUM, "Failed to deserialize table info.");
+  // table id
+  table_id_t table_id = MACH_READ_FROM(table_id_t, buf);
+  buf += 4;
+  // table name
+  uint32_t len = MACH_READ_UINT32(buf);
+  buf += 4;
+  std::string table_name(buf, len);
+  buf += len;
+  // table heap root page id
+  page_id_t root_page_id = MACH_READ_FROM(page_id_t, buf);
+  buf += 4;
+  // table schema
+  TableSchema *schema = nullptr;
+  buf += TableSchema::DeserializeFrom(buf, schema);
+  // allocate space for table metadata
+  table_meta = new TableMetadata(table_id, table_name, root_page_id, schema);
+  return buf - p;
 }
 
 /**
@@ -67,11 +62,9 @@ uint32_t TableMetadata::DeserializeFrom(char *buf, TableMetadata *&table_meta, M
  *
  * @param heap Memory heap passed by TableInfo
  */
-TableMetadata *TableMetadata::Create(table_id_t table_id, std::string table_name,
-                                     page_id_t root_page_id, TableSchema *schema, MemHeap *heap) {
-  // allocate space for table metadata
-  void *buf = heap->Allocate(sizeof(TableMetadata));
-  return new(buf)TableMetadata(table_id, table_name, root_page_id, schema);
+TableMetadata *TableMetadata::Create(table_id_t table_id, std::string table_name, page_id_t root_page_id,
+                                     TableSchema *schema) {
+  return new TableMetadata(table_id, table_name, root_page_id, schema);
 }
 
 TableMetadata::TableMetadata(table_id_t table_id, std::string table_name, page_id_t root_page_id, TableSchema *schema)

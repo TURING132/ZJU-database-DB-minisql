@@ -1,10 +1,12 @@
 #include "catalog/indexes.h"
 
-IndexMetadata *IndexMetadata::Create(const index_id_t index_id, const string &index_name,
-                                     const table_id_t table_id, const vector<uint32_t> &key_map,
-                                     MemHeap *heap) {
-  void *buf = heap->Allocate(sizeof(IndexMetadata));
-  return new(buf)IndexMetadata(index_id, index_name, table_id, key_map);
+IndexMetadata::IndexMetadata(const index_id_t index_id, const std::string &index_name, const table_id_t table_id,
+                             const std::vector<uint32_t> &key_map)
+    : index_id_(index_id), index_name_(index_name), table_id_(table_id), key_map_(key_map) {}
+
+IndexMetadata *IndexMetadata::Create(const index_id_t index_id, const string &index_name, const table_id_t table_id,
+                                     const vector<uint32_t> &key_map) {
+  return new IndexMetadata(index_id, index_name, table_id, key_map);
 }
 
 uint32_t IndexMetadata::SerializeTo(char *buf) const {
@@ -42,34 +44,38 @@ uint32_t IndexMetadata::GetSerializedSize() const {
   return index_name_.size()+4*key_map_.size()+4*5;
 }
 
-uint32_t IndexMetadata::DeserializeFrom(char *buf, IndexMetadata *&index_meta, MemHeap *heap) {
-  //some param used for create indexinfo
-  /*content: MAGIC_NUM | index_id_ | index_name_ | table_id_ | key_map_ */
-  index_id_t index_id;
-  string index_name;
-  table_id_t table_id;
-  vector<uint32_t> key_map;
-  uint32_t offset=sizeof(uint32_t);
-  //index_id
-  index_id=MACH_READ_FROM(uint32_t,buf+offset);
-  offset+=sizeof(uint32_t);
-  //indexname
-  char tmp[50000];
-  uint32_t len_of_indexname=MACH_READ_FROM(uint32_t,buf+offset);
-  offset+=sizeof(uint32_t);
-  memcpy(tmp,buf+offset,len_of_indexname);
-  tmp[len_of_indexname]='\0';
-  offset+=len_of_indexname;
-  //table_id
-  table_id=MACH_READ_FROM(uint32_t,buf+offset);
-  offset+=sizeof(uint32_t);
-  //key_map
-  uint32_t key_map_size=MACH_READ_FROM(uint32_t,buf+offset);
-  for(int i=0;i<(int)key_map_size;++i){
-    uint32_t tmp2=MACH_READ_FROM(uint32_t,buf+offset);
-    offset+=sizeof(uint32_t);
-    key_map.push_back(tmp2);
+
+uint32_t IndexMetadata::DeserializeFrom(char *buf, IndexMetadata *&index_meta) {
+  if (index_meta != nullptr) {
+    LOG(WARNING) << "Pointer object index info is not null in table info deserialize." << std::endl;
   }
-  index_meta = IndexMetadata::Create(index_id, tmp, table_id, key_map, heap);
-  return offset;
+  char *p = buf;
+  // magic num
+  uint32_t magic_num = MACH_READ_UINT32(buf);
+  buf += 4;
+  ASSERT(magic_num == INDEX_METADATA_MAGIC_NUM, "Failed to deserialize index info.");
+  // index id
+  index_id_t index_id = MACH_READ_FROM(index_id_t, buf);
+  buf += 4;
+  // index name
+  uint32_t len = MACH_READ_UINT32(buf);
+  buf += 4;
+  std::string index_name(buf, len);
+  buf += len;
+  // table id
+  table_id_t table_id = MACH_READ_FROM(table_id_t, buf);
+  buf += 4;
+  // index key count
+  uint32_t index_key_count = MACH_READ_UINT32(buf);
+  buf += 4;
+  // key mapping in table
+  std::vector<uint32_t> key_map;
+  for (uint32_t i = 0; i < index_key_count; i++) {
+    uint32_t key_index = MACH_READ_UINT32(buf);
+    buf += 4;
+    key_map.push_back(key_index);
+  }
+  // allocate space for index meta data
+  index_meta = new IndexMetadata(index_id, index_name, table_id, key_map);
+  return buf - p;
 }

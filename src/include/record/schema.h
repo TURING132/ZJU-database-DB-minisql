@@ -2,7 +2,6 @@
 #include <iostream>
 #include <vector>
 
-//#include "page/table_page.h"
 #include "common/dberr.h"
 #include "common/macros.h"
 #include "glog/logging.h"
