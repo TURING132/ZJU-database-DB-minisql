@@ -422,6 +422,9 @@ dberr_t CatalogManager::LoadTable(const table_id_t table_id, const page_id_t pag
 }
 
 /**
+ *
+ *
+ * 
  * TODO: Student Implement
  */
 dberr_t CatalogManager::LoadIndex(const index_id_t index_id, const page_id_t page_id) {

@@ -15,7 +15,6 @@ uint32_t Row::SerializeTo(char *buf, Schema *schema) const {
   char* bitmap = buf+cur;
   memset(bitmap,0,bitmap_len);//初始化为0
   cur+=bitmap_len;
-
   for(uint32_t i=0;i<field_num;i++){
     Field *field = fields_[i];
     if(field->IsNull()){
@@ -38,7 +37,6 @@ uint32_t Row::DeserializeFrom(char *buf, Schema *schema) {
   char* bitmap = buf+cur;
   uint32_t bitmap_len = (field_num+7)/8;
   memset(bitmap,0,bitmap_len);cur+=bitmap_len;
-
   fields_.clear();fields_.resize(field_num);
   for(uint32_t i=0;i<field_num;i++){
     if(bitmap[i/8]&(1<<(i%8))){

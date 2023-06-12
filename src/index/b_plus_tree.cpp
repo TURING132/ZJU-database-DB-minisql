@@ -15,6 +15,10 @@ BPlusTree::BPlusTree(index_id_t index_id, BufferPoolManager *buffer_pool_manager
       processor_(KM),
       leaf_max_size_(leaf_max_size),
       internal_max_size_(internal_max_size) {
+  Page* page = buffer_pool_manager_->FetchPage(INDEX_ROOTS_PAGE_ID);
+  auto index_root_page = reinterpret_cast<IndexRootsPage*>(page);
+  index_root_page->GetRootId(index_id,&root_page_id_);
+  buffer_pool_manager_->UnpinPage(INDEX_ROOTS_PAGE_ID, true);
     if(leaf_max_size == UNDEFINED_SIZE)
       leaf_max_size_ = (PAGE_SIZE - LEAF_PAGE_HEADER_SIZE) / (processor_.GetKeySize() + sizeof(RowId));
     if(internal_max_size == UNDEFINED_SIZE)
@@ -530,7 +534,7 @@ Page *BPlusTree::FindLeafPage(const GenericKey *key, page_id_t page_id, bool lef
  * updating it.
  */
 void BPlusTree::UpdateRootPageId(int insert_record) {
-  auto *index_roots_page = reinterpret_cast<IndexRootsPage *>(buffer_pool_manager_->FetchPage(0));
+  auto *index_roots_page = reinterpret_cast<IndexRootsPage *>(buffer_pool_manager_->FetchPage(INDEX_ROOTS_PAGE_ID));
   if (insert_record != 0) {
     // create a new record<index_id_ + root_page_id> in index_roots_page
     index_roots_page->Insert(index_id_, root_page_id_);
@@ -538,7 +542,7 @@ void BPlusTree::UpdateRootPageId(int insert_record) {
     // update root_page_id in index_roots_page
     index_roots_page->Update(index_id_, root_page_id_);
   }
-  buffer_pool_manager_->UnpinPage(0, true);
+  buffer_pool_manager_->UnpinPage(INDEX_ROOTS_PAGE_ID, true);
 }
 
 /**

@@ -30,6 +30,7 @@ IndexIterator &IndexIterator::operator++() {
     item_index = 0;
     current_page_id = next_id;
   }
+  return *this;
 }
 
 bool IndexIterator::operator==(const IndexIterator &itr) const {
