@@ -109,6 +109,7 @@ bool TableHeap::GetTuple(Row *row, Transaction *txn) {
   page->RLatch();
   bool get_result = page->GetTuple(row,schema_,txn, lock_manager_);
   page->RUnlatch();
+  buffer_pool_manager_->UnpinPage(page->GetPageId(),false);
   return get_result;
 }
 

@@ -158,7 +158,7 @@ dberr_t CatalogManager::CreateTable(const string &table_name, TableSchema *schem
     table_meta_=table_meta_->Create(table_id,table_name,table_page_id,schema_);
     table_meta_->SerializeTo(meta_page->GetData());
     //table init
-    table_heap_=table_heap_->Create(buffer_pool_manager_,table_page_id,schema_,nullptr,nullptr);
+    table_heap_=table_heap_->Create(buffer_pool_manager_,schema_, nullptr,nullptr,nullptr);
     //table info
     table_info->Init(table_meta_,table_heap_);
 

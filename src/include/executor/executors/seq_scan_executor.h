@@ -40,6 +40,8 @@ class SeqScanExecutor : public AbstractExecutor {
  private:
   /** The sequential scan plan node to be executed */
   const SeqScanPlanNode *plan_;
+  TableIterator cur;
+  TableHeap * tableHeap;
 };
 
 #endif  // MINISQL_SEQ_SCAN_EXECUTOR_H
