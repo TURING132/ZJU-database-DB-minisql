@@ -29,7 +29,7 @@ class CatalogMeta {
   }
 
   inline index_id_t GetNextIndexId() const {
-    return index_meta_pages_.size() == 0 ? 0 : index_meta_pages_.rbegin()->first;
+    return index_meta_pages_.size() == 0 ? 0 : index_meta_pages_.rbegin()->first+1;
   }
 
   static CatalogMeta *NewInstance() { return new CatalogMeta(); }

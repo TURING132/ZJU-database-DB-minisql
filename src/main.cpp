@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
       printer.PrintTree(syntax_tree_file_mgr[syntax_tree_id++]);
     }
 
-    auto result = engine.Execute(MinisqlGetParserRootNode());
+    auto result = engine.Execute(MinisqlGetParserRootNode(),0,0);
 
     // clean memory after parse
     MinisqlParserFinish();

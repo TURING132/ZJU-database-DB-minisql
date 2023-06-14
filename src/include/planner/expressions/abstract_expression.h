@@ -56,6 +56,10 @@ class AbstractExpression {
   /** @return the type of this expression */
   virtual ExpressionType GetType() { return type_; }
 
+  virtual uint32_t GetColIdx() const { return 0; }
+
+  virtual std::string GetComparisonType() { return ""; }
+
  private:
   /** The return type of this expression. */
   TypeId ret_type_;

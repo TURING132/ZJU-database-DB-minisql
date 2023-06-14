@@ -45,6 +45,7 @@ bool BPlusTree::IsEmpty() const { return root_page_id_ == INVALID_PAGE_ID; }
  */
 bool BPlusTree::GetValue(const GenericKey *key, std::vector<RowId> &result, Transaction *transaction) {
   // 强制类型转换为leafPage处理
+  if(root_page_id_==INVALID_PAGE_ID)return false;
   auto *leaf = reinterpret_cast<::LeafPage *>(FindLeafPage(key)->GetData());
   RowId ri;
   if (leaf->Lookup(key, ri, processor_)) {  // 找到

@@ -33,7 +33,7 @@ class ExecuteEngine {
   /**
    * executor interface
    */
-  dberr_t Execute(pSyntaxNode ast);
+  dberr_t Execute(pSyntaxNode ast,double *time,int *affected);
 
   dberr_t ExecutePlan(const AbstractPlanNodeRef &plan, std::vector<Row> *result_set, Transaction *txn,
                       ExecuteContext *exec_ctx);

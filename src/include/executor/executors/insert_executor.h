@@ -45,6 +45,9 @@ class InsertExecutor : public AbstractExecutor {
   /** The insert plan node to be executed*/
   const InsertPlanNode *plan_;
   std::unique_ptr<AbstractExecutor> child_executor_;
+  TableInfo* tableInfo;
+  TableHeap * tableHeap;
+  std::vector<IndexInfo *>indices;
 };
 
 #endif  // MINISQL_INSERT_EXECUTOR_H

@@ -65,9 +65,10 @@ bool TableHeap::MarkDelete(const RowId &rid, Transaction *txn) {
 bool TableHeap::UpdateTuple(const Row &row, const RowId &rid, Transaction *txn) {
   auto old_page = reinterpret_cast<TablePage *>(buffer_pool_manager_->FetchPage(rid.GetPageId()));
   old_page->WLatch();
-  Row* old_row = new Row(rid);
-  old_page->GetTuple(old_row,schema_,txn,lock_manager_);
-  bool update_result = old_page->UpdateTuple(row,old_row,schema_,txn,lock_manager_,log_manager_);
+  Row old_row = Row(rid);
+//  old_page->GetTuple(&old_row,schema_,txn,lock_manager_);只要有rid就行
+  bool update_result = old_page->UpdateTuple(row,&old_row,schema_,txn,lock_manager_,log_manager_);
+  //要求old_row的field是空的
   old_page->WUnlatch();
   buffer_pool_manager_->UnpinPage(old_page->GetPageId(), true);
   return update_result;

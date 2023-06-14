@@ -35,7 +35,13 @@ class IndexScanExecutor : public AbstractExecutor {
   const Schema *GetOutputSchema() const override { return plan_->OutputSchema(); }
 
  private:
+  vector<Row>result_;
 
+  vector<Row>::iterator iter;
+
+  unordered_map<size_t, Index*> index_idx;
+
+  void Traverse(const AbstractExpressionRef &exp,vector<RowId>&result);
   /** The sequential scan plan node to be executed */
   const IndexScanPlanNode *plan_;
 };

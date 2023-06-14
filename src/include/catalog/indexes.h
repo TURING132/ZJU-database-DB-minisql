@@ -84,6 +84,8 @@ class IndexInfo {
 
   IndexSchema *GetIndexKeySchema() { return key_schema_; }
 
+  IndexMetadata GetIndexMetadata(){return *meta_data_;}
+
  private:
   explicit IndexInfo() : meta_data_{nullptr}, index_{nullptr}, key_schema_{nullptr} {}
 //  Index *CreateIndex(BufferPoolManager *buffer_pool_manager)

@@ -20,7 +20,7 @@ void DeleteExecutor::Init() {
    exec_ctx_->GetCatalog()->GetTable(plan_->table_name_,tableInfo);
    tableHeap = tableInfo->GetTableHeap();
    exec_ctx_->GetCatalog()->GetTableIndexes(tableInfo->GetTableName(),indices);
-
+  child_executor_->Init();
 }
 
 bool DeleteExecutor::Next([[maybe_unused]] Row *row, RowId *rid) {

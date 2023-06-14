@@ -21,7 +21,13 @@ void SeqScanExecutor::Init() {
 
 bool SeqScanExecutor::Next(Row *row, RowId *rid) {
   while(cur!=tableHeap->End()){
-      if(Field(kTypeInt, 1).CompareEquals(plan_->GetPredicate()->Evaluate(&(*cur)))){
+    if(!plan_->GetPredicate()){//谓词可能是空的，如select *,直接返回
+      *row = (*cur);
+      *rid = (cur)->GetRowId();
+      (cur)++;
+      return true;
+    }
+    if(Field(kTypeInt, 1).CompareEquals(plan_->GetPredicate()->Evaluate(&(*cur)))){
       *row = (*cur);
       *rid = (cur)->GetRowId();
       (cur)++;

@@ -334,6 +334,9 @@ dberr_t CatalogManager::DropTable(const string &table_name) {
     }
     table_id_t table_id=table_names_[table_name];
     TableInfo *table_info=tables_[table_id];
+    table_info->GetTableHeap()->FreeTableHeap();
+    tables_.erase(table_id);
+    table_names_.erase(table_name);
     return DB_SUCCESS;
   }catch(exception e){
     return DB_FAILED;
