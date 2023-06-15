@@ -1,4 +1,5 @@
 #include "executor/executors/index_scan_executor.h"
+#include <algorithm>
 /**
 * TODO: Student Implement
 */
