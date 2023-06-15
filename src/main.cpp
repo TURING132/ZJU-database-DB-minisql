@@ -32,7 +32,7 @@ void InputCommand(char *input, const int len) {
 }
 
 int main(int argc, char **argv) {
-  setbuf(stdout,NULL);
+//  setbuf(stdout,NULL);
   InitGoogleLog(argv[0]);
   // command buffer
   const int buf_size = 1024;

@@ -235,15 +235,17 @@ void BPlusTree::Remove(const GenericKey *key, Transaction *transaction) {
     Page *currPage = buffer_pool_manager_->FetchPage(leaf->GetParentPageId());
     auto curr = reinterpret_cast<::InternalPage *>(currPage);
     page_id_t value = leaf->GetPageId();
-    while ((!curr->IsRootPage()) && curr->ValueIndex(value) == 0) {  // 对应key0一直上滤到根节点
-      buffer_pool_manager_->UnpinPage(curr->GetPageId(), false);
-      value = curr->GetPageId();
-      currPage = buffer_pool_manager_->FetchPage(curr->GetParentPageId());
-      curr = reinterpret_cast<::InternalPage *>(currPage);
-    }
-    if (curr->ValueIndex(value) != 0 && processor_.CompareKeys(updateKey, curr->KeyAt(curr->ValueIndex(value))) != 0) {
-      curr->SetKeyAt(curr->ValueIndex(value), updateKey);
-      buffer_pool_manager_->UnpinPage(curr->GetPageId(), true);
+    if(currPage!= nullptr){//当前删除叶节点不是根节点
+      while ((!curr->IsRootPage()) && curr->ValueIndex(value) == 0) {  // 对应key0一直上滤到根节点
+        buffer_pool_manager_->UnpinPage(curr->GetPageId(), false);
+        value = curr->GetPageId();
+        currPage = buffer_pool_manager_->FetchPage(curr->GetParentPageId());
+        curr = reinterpret_cast<::InternalPage *>(currPage);
+      }
+      if (curr->ValueIndex(value) != 0 && processor_.CompareKeys(updateKey, curr->KeyAt(curr->ValueIndex(value))) != 0) {
+        curr->SetKeyAt(curr->ValueIndex(value), updateKey);
+        buffer_pool_manager_->UnpinPage(curr->GetPageId(), true);
+      }
     }
   }
   // unpin后才有可能删除
