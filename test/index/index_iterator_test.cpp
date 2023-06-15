@@ -51,5 +51,8 @@ TEST(BPlusTreeTests, IndexIteratorTest) {
   for (auto iter = tree.Begin(); iter != tree.End(); ++iter) {
     ASSERT_TRUE(KP.CompareKeys(not_delete_key[i++], (*iter).first) == 0);  // if equal, CompareKeys return 0
     EXPECT_EQ(RowId((2 * i - 1) * 100), (*iter).second);
+    if(i==47){
+      int j = 0;
+    }
   }
 }

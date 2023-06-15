@@ -21,12 +21,17 @@ std::pair<GenericKey *, RowId> IndexIterator::operator*() {
 }
 
 IndexIterator &IndexIterator::operator++() {
+
   if(item_index != page->GetSize() - 1) item_index++;
   else{
     int next_id = page->GetNextPageId();
     //unpin上一个page
     buffer_pool_manager->UnpinPage(page->GetPageId(), false);
     page = reinterpret_cast<IndexIterator::LeafPage *>(buffer_pool_manager->FetchPage(next_id));
+//    if(page== nullptr){
+//      auto end = new IndexIterator;
+//      return *end;
+//    }
     item_index = 0;
     current_page_id = next_id;
   }
