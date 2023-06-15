@@ -41,6 +41,15 @@ ExecuteEngine::ExecuteEngine() {
     dbs_[stdir->d_name] = new DBStorageEngine(stdir->d_name, false);
   }
    **/
+struct dirent *stdir;
+while((stdir = readdir(dir)) != nullptr) {
+  if( strcmp( stdir->d_name , "." ) == 0 ||
+      strcmp( stdir->d_name , "..") == 0 ||
+      stdir->d_name[0] == '.')
+    continue;
+  auto temp = stdir->d_name;
+  dbs_[stdir->d_name] = new DBStorageEngine(stdir->d_name, false);
+}
   closedir(dir);
 }
 
@@ -617,5 +626,5 @@ dberr_t ExecuteEngine::ExecuteQuit(pSyntaxNode ast, ExecuteContext *context) {
   LOG(INFO) << "ExecuteQuit" << std::endl;
 #endif
   current_db_ = "";
- return DB_SUCCESS;
+ return DB_QUIT;
 }
