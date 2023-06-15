@@ -25,7 +25,7 @@ class CatalogMeta {
   uint32_t GetSerializedSize() const;
 
   inline table_id_t GetNextTableId() const {
-    return table_meta_pages_.size() == 0 ? 0 : table_meta_pages_.rbegin()->first+1 ;
+    return table_meta_pages_.size() == 0 ? 0 : table_meta_pages_.rbegin()->first;
   }
 
   inline index_id_t GetNextIndexId() const {

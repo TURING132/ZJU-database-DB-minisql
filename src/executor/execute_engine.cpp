@@ -168,11 +168,17 @@ dberr_t ExecuteEngine::Execute(pSyntaxNode ast,double *time,int *affected) {  if
     auto num_of_columns = schema->GetColumnCount();
     if (!result_set.empty()) {
       // find the max width for each column
+      int size = result_set.size();
       int i = 0;
       vector<int> data_width(num_of_columns, 0);
       for (const auto &row : result_set) {
+        i=0;
         for(auto column:schema->GetColumns()){
           int idx = column->GetTableInd();
+          auto temp = row.GetField(idx);
+          if(temp->GetTypeId()>4){
+            printf("error\n");
+          }
           data_width[i] = max(data_width[i], int(row.GetField(idx)->toString().size()));
           i++;
         }

@@ -68,6 +68,7 @@ void IndexScanExecutor::Traverse(const AbstractExpressionRef &exp,vector<RowId>&
 
 
 bool IndexScanExecutor::Next(Row *row, RowId *rid) {
+
   if(iter!=result_.end()){
     *row = *iter;
     *rid = iter->GetRowId();
