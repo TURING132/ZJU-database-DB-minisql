@@ -41,15 +41,6 @@ ExecuteEngine::ExecuteEngine() {
     dbs_[stdir->d_name] = new DBStorageEngine(stdir->d_name, false);
   }
    **/
-struct dirent *stdir;
-while((stdir = readdir(dir)) != nullptr) {
-  if( strcmp( stdir->d_name , "." ) == 0 ||
-      strcmp( stdir->d_name , "..") == 0 ||
-      stdir->d_name[0] == '.')
-    continue;
-  auto temp = stdir->d_name;
-  dbs_[stdir->d_name] = new DBStorageEngine(stdir->d_name, false);
-}
   closedir(dir);
 }
 
@@ -201,9 +192,9 @@ dberr_t ExecuteEngine::Execute(pSyntaxNode ast,double *time,int *affected) {  if
       writer.Divider(data_width);
       k = 0;
       writer.BeginRow();
-//      for (const auto &column : schema->GetColumns()) {
-//        writer.WriteHeaderCell(column->GetName(), data_width[column->GetTableInd()]);
-//      }
+      //      for (const auto &column : schema->GetColumns()) {
+      //        writer.WriteHeaderCell(column->GetName(), data_width[column->GetTableInd()]);
+      //      }
       for(int i=0;i<schema->GetColumnCount();i++){
         writer.WriteHeaderCell(schema->GetColumn(i)->GetName(), data_width[i]);
       }
@@ -214,10 +205,10 @@ dberr_t ExecuteEngine::Execute(pSyntaxNode ast,double *time,int *affected) {  if
       // Transforming result set into strings.
       for (const auto &row : result_set) {
         writer.BeginRow();
-//        for (const auto &column : schema->GetColumns()) {
-//          uint32_t idx = column->GetTableInd();
-//          writer.WriteCell(row.GetField(column->GetTableInd())->toString(), data_width[idx]);
-//        }
+        //        for (const auto &column : schema->GetColumns()) {
+        //          uint32_t idx = column->GetTableInd();
+        //          writer.WriteCell(row.GetField(column->GetTableInd())->toString(), data_width[idx]);
+        //        }
         for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
           uint32_t idx = schema->GetColumn(i)->GetTableInd();
           writer.WriteCell(row.GetField(idx)->toString(), data_width[i]);
@@ -408,7 +399,7 @@ dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *conte
     bool unique=(node->val_!=nullptr&&string(node->val_)=="unique");
     auto detail_node=node->child_;
     string column_name(detail_node->val_);
-//    for(auto it:primary_keys)if(it==column_name)unique=true;
+    //    for(auto it:primary_keys)if(it==column_name)unique=true;
     string type(detail_node->next_->val_);
     Column *column;
     if(type=="int")column=new Column(column_name,kTypeInt,index,true,unique);
@@ -626,5 +617,5 @@ dberr_t ExecuteEngine::ExecuteQuit(pSyntaxNode ast, ExecuteContext *context) {
   LOG(INFO) << "ExecuteQuit" << std::endl;
 #endif
   current_db_ = "";
- return DB_QUIT;
+  return DB_SUCCESS;
 }
